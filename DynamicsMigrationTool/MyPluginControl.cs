@@ -1,8 +1,12 @@
 ﻿using McTools.Xrm.Connection;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Extensions;
+using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
+using Microsoft.Xrm.Tooling.Connector;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -21,7 +25,14 @@ namespace DynamicsMigrationTool
         public MyPluginControl()
         {
             InitializeComponent();
+            SetEntityList();
         }
+
+        private void SetEntityList()
+        {
+        }
+
+
 
         private void MyPluginControl_Load(object sender, EventArgs e)
         {
@@ -78,6 +89,30 @@ namespace DynamicsMigrationTool
                 }
             });
         }
+        private void GetEntityMetaData()
+        {
+            WorkAsync(new WorkAsyncInfo
+            {
+                Message = "Getting Entity MetaData",
+                Work = (worker, args) =>
+                {
+                    args.Result = Service.GetEntityMetadata("account");
+                },
+                PostWorkCallBack = (args) =>
+                {
+                    if (args.Error != null)
+                    {
+                        MessageBox.Show(args.Error.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    var result = args.Result as EntityMetadata;
+                    if (result != null)
+                    {
+                        var disp1 = result.Attributes.FirstOrDefault().LogicalName;
+                        MessageBox.Show(disp1);
+                    }
+                }
+            });
+        }
 
         /// <summary>
         /// This event occurs when the plugin is closed
@@ -106,8 +141,29 @@ namespace DynamicsMigrationTool
 
         private void TestButton1_Click(object sender, EventArgs e)
         {
-            LogInfo("Test Button Works");
+            ExecuteMethod(GetEntityMetaData);
         }
+        void OnPropertyChanged(String prop)
+        {
+            PropertyChangedEventHandler handler = PropertyChanged;
 
+            if (handler != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(prop));
+            }
+        }
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private ObservableCollection<EntityMetadata> entityList;
+
+        public ObservableCollection<EntityMetadata> EntityList
+        {
+            get { return entityList; }
+            set
+            {
+                entityList = value;
+                OnPropertyChanged("EntityList");
+            }
+        }
     }
 }

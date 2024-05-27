@@ -33,6 +33,7 @@
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsbSample = new System.Windows.Forms.ToolStripButton();
             this.TestButton1 = new System.Windows.Forms.Button();
+            this.entityCmb = new System.Windows.Forms.ComboBox();
             this.toolStripMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -81,10 +82,20 @@
             this.TestButton1.UseVisualStyleBackColor = true;
             this.TestButton1.Click += new System.EventHandler(this.TestButton1_Click);
             // 
+            // entityCmb
+            // 
+            this.entityCmb.FormattingEnabled = true;
+            this.entityCmb.Location = new System.Drawing.Point(14, 45);
+            this.entityCmb.Name = "entityCmb";
+            this.entityCmb.Size = new System.Drawing.Size(183, 24);
+            this.entityCmb.TabIndex = 6;
+            this.entityCmb.DataSource = "{Binding Path=EntityList}";
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.entityCmb);
             this.Controls.Add(this.TestButton1);
             this.Controls.Add(this.toolStripMenu);
             this.Margin = new System.Windows.Forms.Padding(4);
@@ -104,5 +115,6 @@
         private System.Windows.Forms.ToolStripButton tsbSample;
         private System.Windows.Forms.ToolStripSeparator tssSeparator1;
         private System.Windows.Forms.Button TestButton1;
+        private System.Windows.Forms.ComboBox entityCmb;
     }
 }
