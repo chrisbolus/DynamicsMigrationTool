@@ -5,6 +5,18 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicsMigrationTool", "DynamicsMigrationTool\DynamicsMigrationTool.csproj", "{510168D9-1307-421F-8332-263B85BEAC17}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuspec", "Nuspec", "{DBEE6DE5-3B51-4E95-94D7-71A4308D6FD7}"
+	ProjectSection(SolutionItems) = preProject
+		DynamicsMigrationTool.nuspec = DynamicsMigrationTool.nuspec
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{43B50B85-3C88-4735-A08A-57A5C15F31D4}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
