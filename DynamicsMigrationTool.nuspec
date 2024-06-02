@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+	<metadata>
+		<id>DynamicsMigrationTool</id>
+		<version>1.0.0.0</version>
+		<title>DynamicsMigrationTool for XRMToolBox</title>
+		<authors>Chris Bolus, Tim Cane</authors>
+		<owners>chrisbolus</owners>
+		<projectUrl>https://github.com/chrisbolus/DynamicsMigrationTool</projectUrl>
+		<icon>images\V_64x64.png</icon>
+		<description>A tool to assist with the Migration of Data into Dynamics using an MSSQL Staging Database</description>
+		<summary>A tool to assist with the Migration of Data into Dynamics using an MSSQL Staging Database</summary>
+		<releaseNotes>Initial Version Release 02.06.2024</releaseNotes>
+		<tags>XRMToolBox Plugin DynamicsMigrationTool Data</tags>
+		<readme>README.md</readme>
+		<dependencies>
+			<group targetFramework=".NETFramework4.8.1">
+				<dependency id="XrmToolBox" version="1.2023.10.67" />
+			</group>
+		</dependencies>
+	</metadata>
+	<files>
+		<file src="V_64x64.png" target="images" />
+		<file src="README.md" target="" />
+
+		<file src="DynamicsMigrationTool\bin\Release\DynamicsMigrationTool.dll" target="lib\net481\Plugins" />
+	</files>
+</package>
