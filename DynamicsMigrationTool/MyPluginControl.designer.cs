@@ -28,93 +28,80 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.toolStripMenu = new System.Windows.Forms.ToolStrip();
-            this.tsbClose = new System.Windows.Forms.ToolStripButton();
-            this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.tsbSample = new System.Windows.Forms.ToolStripButton();
-            this.TestButton1 = new System.Windows.Forms.Button();
-            this.entityCmb = new System.Windows.Forms.ComboBox();
-            this.toolStripMenu.SuspendLayout();
+            this.CreateStgTbl_Btn = new System.Windows.Forms.Button();
+            this.EntityCmb = new System.Windows.Forms.ComboBox();
+            this.stagingDBConnection_txtb = new System.Windows.Forms.TextBox();
+            this.EntityName_Lbl = new System.Windows.Forms.Label();
+            this.StagingDatabase_Lbl = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
-            // toolStripMenu
+            // CreateStgTbl_Btn
             // 
-            this.toolStripMenu.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.toolStripMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsbClose,
-            this.tssSeparator1,
-            this.tsbSample});
-            this.toolStripMenu.Location = new System.Drawing.Point(0, 0);
-            this.toolStripMenu.Name = "toolStripMenu";
-            this.toolStripMenu.Padding = new System.Windows.Forms.Padding(0, 0, 2, 0);
-            this.toolStripMenu.Size = new System.Drawing.Size(746, 27);
-            this.toolStripMenu.TabIndex = 4;
-            this.toolStripMenu.Text = "toolStrip1";
+            this.CreateStgTbl_Btn.Location = new System.Drawing.Point(42, 119);
+            this.CreateStgTbl_Btn.Name = "CreateStgTbl_Btn";
+            this.CreateStgTbl_Btn.Size = new System.Drawing.Size(145, 28);
+            this.CreateStgTbl_Btn.TabIndex = 5;
+            this.CreateStgTbl_Btn.Text = "Create Staging Table";
+            this.CreateStgTbl_Btn.UseVisualStyleBackColor = true;
+            this.CreateStgTbl_Btn.Click += new System.EventHandler(this.CreateStgTbl_Btn_Click);
             // 
-            // tsbClose
+            // EntityCmb
             // 
-            this.tsbClose.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbClose.Name = "tsbClose";
-            this.tsbClose.Size = new System.Drawing.Size(107, 24);
-            this.tsbClose.Text = "Close this tool";
-            this.tsbClose.Click += new System.EventHandler(this.tsbClose_Click);
+            this.EntityCmb.FormattingEnabled = true;
+            this.EntityCmb.Location = new System.Drawing.Point(42, 70);
+            this.EntityCmb.Name = "EntityCmb";
+            this.EntityCmb.Size = new System.Drawing.Size(265, 24);
+            this.EntityCmb.TabIndex = 6;
             // 
-            // tssSeparator1
+            // stagingDBConnection_txtb
             // 
-            this.tssSeparator1.Name = "tssSeparator1";
-            this.tssSeparator1.Size = new System.Drawing.Size(6, 27);
+            this.stagingDBConnection_txtb.Location = new System.Drawing.Point(42, 332);
+            this.stagingDBConnection_txtb.Name = "stagingDBConnection_txtb";
+            this.stagingDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
+            this.stagingDBConnection_txtb.TabIndex = 7;
+            this.stagingDBConnection_txtb.TextChanged += new System.EventHandler(this.stagingDBConnection_txtb_TextChanged);
             // 
-            // tsbSample
+            // EntityName_Lbl
             // 
-            this.tsbSample.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbSample.Name = "tsbSample";
-            this.tsbSample.Size = new System.Drawing.Size(57, 24);
-            this.tsbSample.Text = "Try me";
-            this.tsbSample.Click += new System.EventHandler(this.tsbSample_Click);
+            this.EntityName_Lbl.AutoSize = true;
+            this.EntityName_Lbl.Location = new System.Drawing.Point(42, 48);
+            this.EntityName_Lbl.Name = "EntityName_Lbl";
+            this.EntityName_Lbl.Size = new System.Drawing.Size(39, 16);
+            this.EntityName_Lbl.TabIndex = 8;
+            this.EntityName_Lbl.Text = "Entity";
             // 
-            // TestButton1
+            // StagingDatabase_Lbl
             // 
-            this.TestButton1.Location = new System.Drawing.Point(137, 134);
-            this.TestButton1.Name = "TestButton1";
-            this.TestButton1.Size = new System.Drawing.Size(125, 56);
-            this.TestButton1.TabIndex = 5;
-            this.TestButton1.Text = "TestButton1";
-            this.TestButton1.UseVisualStyleBackColor = true;
-            this.TestButton1.Click += new System.EventHandler(this.TestButton1_Click);
-            // 
-            // entityCmb
-            // 
-            this.entityCmb.FormattingEnabled = true;
-            this.entityCmb.Location = new System.Drawing.Point(14, 45);
-            this.entityCmb.Name = "entityCmb";
-            this.entityCmb.Size = new System.Drawing.Size(183, 24);
-            this.entityCmb.TabIndex = 6;
-            this.entityCmb.DataSource = "{Binding Path=EntityList}";
+            this.StagingDatabase_Lbl.AutoSize = true;
+            this.StagingDatabase_Lbl.Location = new System.Drawing.Point(42, 310);
+            this.StagingDatabase_Lbl.Name = "StagingDatabase_Lbl";
+            this.StagingDatabase_Lbl.Size = new System.Drawing.Size(223, 16);
+            this.StagingDatabase_Lbl.TabIndex = 9;
+            this.StagingDatabase_Lbl.Text = "Staging Database Connection String";
             // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.entityCmb);
-            this.Controls.Add(this.TestButton1);
-            this.Controls.Add(this.toolStripMenu);
+            this.Controls.Add(this.StagingDatabase_Lbl);
+            this.Controls.Add(this.EntityName_Lbl);
+            this.Controls.Add(this.stagingDBConnection_txtb);
+            this.Controls.Add(this.EntityCmb);
+            this.Controls.Add(this.CreateStgTbl_Btn);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "MyPluginControl";
             this.Size = new System.Drawing.Size(746, 370);
             this.Load += new System.EventHandler(this.MyPluginControl_Load);
-            this.toolStripMenu.ResumeLayout(false);
-            this.toolStripMenu.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
         #endregion
-        private System.Windows.Forms.ToolStrip toolStripMenu;
-        private System.Windows.Forms.ToolStripButton tsbClose;
-        private System.Windows.Forms.ToolStripButton tsbSample;
-        private System.Windows.Forms.ToolStripSeparator tssSeparator1;
-        private System.Windows.Forms.Button TestButton1;
-        private System.Windows.Forms.ComboBox entityCmb;
+        private System.Windows.Forms.Button CreateStgTbl_Btn;
+        private System.Windows.Forms.ComboBox EntityCmb;
+        private System.Windows.Forms.TextBox stagingDBConnection_txtb;
+        private System.Windows.Forms.Label EntityName_Lbl;
+        private System.Windows.Forms.Label StagingDatabase_Lbl;
     }
 }
