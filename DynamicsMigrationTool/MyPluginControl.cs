@@ -413,5 +413,18 @@ namespace DynamicsMigrationTool
             mySettings.StagingDBConnectionString = stagingDBConnection_txtb.Text;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
+
+        private void About_btn_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This tool is designed to aid migration into D365 using a Dynamics connection and a local MSSQL database.\n\n" +
+
+                            "Creating Staging Tables\n" +
+                            "This will create a staging table which is based of the metadata of the selected Dynamics entity. A mapping function enables the Dynamics field types to be mapped to equivalent SQL data types. Each field which contains a guid will have an additional \"_source\" column in the staging database. Additional field are also created to aid with migration.\n\n" +
+
+                            "Steps:\n" +
+                            "1. Populate the \"Staging Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DMT;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
+                            "2. Select an entity from the \"Entity\" dropdown.\n" +
+                            "3. Click \"Create Staging Table\"");
+        }
     }
 }

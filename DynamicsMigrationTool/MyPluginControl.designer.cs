@@ -33,13 +33,14 @@
             this.stagingDBConnection_txtb = new System.Windows.Forms.TextBox();
             this.EntityName_Lbl = new System.Windows.Forms.Label();
             this.StagingDatabase_Lbl = new System.Windows.Forms.Label();
+            this.About_btn = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
             // 
             this.CreateStgTbl_Btn.Location = new System.Drawing.Point(42, 119);
             this.CreateStgTbl_Btn.Name = "CreateStgTbl_Btn";
-            this.CreateStgTbl_Btn.Size = new System.Drawing.Size(145, 28);
+            this.CreateStgTbl_Btn.Size = new System.Drawing.Size(167, 32);
             this.CreateStgTbl_Btn.TabIndex = 5;
             this.CreateStgTbl_Btn.Text = "Create Staging Table";
             this.CreateStgTbl_Btn.UseVisualStyleBackColor = true;
@@ -79,10 +80,21 @@
             this.StagingDatabase_Lbl.TabIndex = 9;
             this.StagingDatabase_Lbl.Text = "Staging Database Connection String";
             // 
+            // About_btn
+            // 
+            this.About_btn.Location = new System.Drawing.Point(650, 48);
+            this.About_btn.Name = "About_btn";
+            this.About_btn.Size = new System.Drawing.Size(75, 29);
+            this.About_btn.TabIndex = 10;
+            this.About_btn.Text = "About";
+            this.About_btn.UseVisualStyleBackColor = true;
+            this.About_btn.Click += new System.EventHandler(this.About_btn_Click);
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.About_btn);
             this.Controls.Add(this.StagingDatabase_Lbl);
             this.Controls.Add(this.EntityName_Lbl);
             this.Controls.Add(this.stagingDBConnection_txtb);
@@ -103,5 +115,6 @@
         private System.Windows.Forms.TextBox stagingDBConnection_txtb;
         private System.Windows.Forms.Label EntityName_Lbl;
         private System.Windows.Forms.Label StagingDatabase_Lbl;
+        private System.Windows.Forms.Button About_btn;
     }
 }

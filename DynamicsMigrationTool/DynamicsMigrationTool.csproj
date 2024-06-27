@@ -314,6 +314,7 @@
   <ItemGroup>
     <EmbeddedResource Include="MyPluginControl.resx">
       <DependentUpon>MyPluginControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
