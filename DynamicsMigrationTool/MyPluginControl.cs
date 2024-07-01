@@ -24,6 +24,8 @@ using Microsoft.SqlServer.Management.Common;
 using View = Microsoft.SqlServer.Management.Smo.View;
 using Server = Microsoft.SqlServer.Management.Smo.Server;
 using System.Data.SqlClient;
+using System.Activities.Expressions;
+using System.Diagnostics.Metrics;
 
 namespace DynamicsMigrationTool
 {
@@ -41,6 +43,8 @@ namespace DynamicsMigrationTool
             public string DBDataType;
             public bool CreateColumn = true;
             public bool CreateSourceField = false;
+            public string DynEntityLookupTargets_List;
+            public string DynDataType_Readable;
         }
 
 
@@ -171,6 +175,40 @@ namespace DynamicsMigrationTool
             }
         }
 
+
+        private void CreateSrcVwTmpl_Btn_Click(object sender, EventArgs e)
+        {
+            ExecuteMethod(TestConnection);
+
+            if (IsEntitySelected())
+            {
+                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
+
+                var stagingDBConnectionString = new SqlConnection();
+
+                Boolean isStagingDBConnectionValid = true;
+                try
+                {
+                    stagingDBConnectionString = new SqlConnection(mySettings.StagingDBConnectionString);
+                    stagingDBConnectionString.Open();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Please review Staging Database Connection String:\n{mySettings.StagingDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DB;Integrated Security=True;");
+                    isStagingDBConnectionValid = false;
+                }
+
+                if (isStagingDBConnectionValid)
+                {
+                    CreateTemplateSourceView(stagingDBConnectionString, entityMetadata);
+
+                    MessageBox.Show("Source View Template Created Successfully");
+                }
+            }
+        }
+
         private void TestConnection()
         {
             var a = 1;
@@ -229,6 +267,78 @@ namespace DynamicsMigrationTool
         }
 
 
+        public void CreateTemplateSourceView(SqlConnection connection, EntityMetadata entity)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandTimeout = 0;
+                command.CommandText = $@"
+CREATE OR ALTER VIEW [dmt].{entity.LogicalName}_Template AS 
+--RENAME THIS VIEW! Remove the ""_Template\"" suffix, or replace it with your own suffix.
+--THIS IS A BASE VIEW OF ALL FIELDS FOR THE {entity.LogicalName.ToUpper()} ENTITY WITH ALL THE CASTS TO ENSURE ALL THE DATA ENDS UP IN THE CORRECT FORMAT. ADD A FROM STATEMENT TO PULL DATA FROM THE TABLE YOU WANT TO USE, AND REPLACE THE NULLS IN THE CASTS WITH THE FIELDS FROM YOUR SOURCE TABLE .
+
+SELECT
+";
+
+                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(1 AS INT) AS Source_System_Id", 
+                                                                        $"DMT Field, used to handle multiple source systems. Default value = 1. Change if using a second (etc.) source system.", true);
+                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(1 AS INT) AS Processing_Status", 
+                                                                        $"DMT Field, used to handle relationship mapping. Default value = 1. Set to 0 for records that shouldn't be loaded.");
+
+
+                foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
+                {
+                    if(attribute.IsValidForCreate == true || attribute.IsValidForUpdate == true)
+                    {
+                        Attribute_StagingInfo attSI = Get_Attribute_StagingInfo(attribute);
+
+                        var targetListMessage = attSI.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = { attSI.DynEntityLookupTargets_List}.";
+
+                        if (attSI.CreateColumn && (attribute.AttributeOf == null || (attribute.IsLogical == null || !attribute.IsLogical.Value)))
+                        {
+                            command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS {attSI.DBDataType}) AS {attribute.LogicalName}", 
+                                                                                    $"Dynamics Attribute Type = {attSI.DynDataType_Readable}.{targetListMessage}");
+                        }
+                        if (attSI.CreateSourceField)
+                        {
+                            if (attribute.LogicalName == entity.PrimaryIdAttribute)
+                            {
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source", 
+                                                                                        $"DMT Field, used to handle the id of the record from the source system. Staging table requires this to be populated and unique when combined with Source_System_Id.");
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader", 
+                                                                                        $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with Leader_System_Id.");
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS INT) AS Leader_System_Id", 
+                                                                                        $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with {attribute.LogicalName}_Leader.");
+                            }
+                            else
+                            {
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source", 
+                                                                                        $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}");
+                            }
+
+                        }
+                    }
+
+                }
+                //removing final comma
+                command.CommandText += "\n--FROM ";
+
+                command.ExecuteNonQuery();
+            }
+
+        }
+
+        public string TemplateSourceView_HandleSpacing(string queryLine, string comment, bool isFirstLine = false)
+        {
+            int spacing = 80;
+            int spacingoffset = queryLine.Length >= spacing ? 10 : spacing - queryLine.Length;
+            string addComma = isFirstLine ? " " : ",";
+
+            return $"       {addComma}{queryLine}{new String(' ', spacingoffset)}--{comment}\n";
+
+        }
+
+
         public void CreateStagingTable(SqlConnection connection, EntityMetadata entity)
         {
             using (var command = connection.CreateCommand())
@@ -257,26 +367,29 @@ namespace DynamicsMigrationTool
 
                 foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
                 {
-                    Attribute_StagingInfo attSI = Get_Attribute_StagingInfo(attribute);
-
-                    if (attSI.CreateColumn && (attribute.AttributeOf == null || (attribute.IsLogical == null || !attribute.IsLogical.Value)))
+                    if (attribute.IsValidForCreate == true || attribute.IsValidForUpdate == true)
                     {
-                        command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName} {attSI.DBDataType};\n";
-                    }
-                    if (attSI.CreateSourceField)
-                    {
-                        if (attribute.LogicalName == entity.PrimaryIdAttribute)
-                        {
-                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255) NOT NULL;\n";
-                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Leader NVARCHAR(255);\n";
-                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD Leader_System_Id INT;\n";
-                            
-                        }
-                        else
-                        {
-                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255);\n";
-                        }
+                        Attribute_StagingInfo attSI = Get_Attribute_StagingInfo(attribute);
 
+                        if (attSI.CreateColumn && (attribute.AttributeOf == null || (attribute.IsLogical == null || !attribute.IsLogical.Value)))
+                        {
+                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName} {attSI.DBDataType};\n";
+                        }
+                        if (attSI.CreateSourceField)
+                        {
+                            if (attribute.LogicalName == entity.PrimaryIdAttribute)
+                            {
+                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255) NOT NULL;\n";
+                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Leader NVARCHAR(255);\n";
+                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD Leader_System_Id INT;\n";
+
+                            }
+                            else
+                            {
+                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255);\n";
+                            }
+
+                        }
                     }
 
                 }
@@ -284,16 +397,18 @@ namespace DynamicsMigrationTool
             }
 
             CreateIndexes(connection, entity);
-            CreateView(connection, entity);
+            CreateRelationshipMapView(connection, entity);
         }
 
         private Attribute_StagingInfo Get_Attribute_StagingInfo(AttributeMetadata attribute)
         {
             var Stg = new Attribute_StagingInfo();
+            Stg.DynDataType_Readable = attribute.AttributeType?.ToString();      //this is modified in a few of cases below.
 
             if (attribute.LogicalName == "EntityImage")
             {
                 Stg.DBDataType = "IMAGE";
+                Stg.DynDataType_Readable = attribute.LogicalName;
             }
             if (attribute.AttributeType == AttributeTypeCode.BigInt)
             {
@@ -314,6 +429,7 @@ namespace DynamicsMigrationTool
             {
                 Stg.DBDataType = "UNIQUEIDENTIFIER";
                 Stg.CreateSourceField = true;
+                Stg.DynEntityLookupTargets_List = GetEntityLookupTargetsList(attribute);
             }
             else if (attribute.AttributeType == AttributeTypeCode.DateTime)
             {
@@ -342,6 +458,7 @@ namespace DynamicsMigrationTool
             else if (attribute.AttributeType == AttributeTypeCode.String)
             {
                 var strlength = (int)attribute.GetType().GetProperty("MaxLength").GetValue(attribute);
+                Stg.DynDataType_Readable = Stg.DynDataType_Readable + $"({strlength})";
                 if (strlength > 4000)
                 {
                     Stg.DBDataType = "NVARCHAR(MAX)";
@@ -353,10 +470,14 @@ namespace DynamicsMigrationTool
             }
             else if (attribute.AttributeType == AttributeTypeCode.Virtual)
             {
-                Stg.CreateColumn = false;
                 if (attribute.AttributeTypeName.Value == "MultiSelectPicklistType")
                 {
                     Stg.DBDataType = "NVARCHAR(1000)";
+                    Stg.DynDataType_Readable = Stg.DynDataType_Readable + " (MultiSelectPicklistType)";
+                }
+                else
+                {
+                    Stg.CreateColumn = false;
                 }
             }
             else
@@ -368,7 +489,16 @@ namespace DynamicsMigrationTool
             return Stg;
         }
 
+        private string GetEntityLookupTargetsList(AttributeMetadata attribute)
+        {
+            if(attribute.GetType().GetProperty("Targets") != null)
+            {
+                var targets = (string[])attribute.GetType().GetProperty("Targets").GetValue(attribute);
 
+                return String.Join(",", targets);
+            }
+            else return null;
+        }
 
         private void CreateIndexes(SqlConnection connection, EntityMetadata entity)
         {
@@ -386,7 +516,7 @@ namespace DynamicsMigrationTool
             }
         }
 
-        private void CreateView(SqlConnection connection, EntityMetadata entity)
+        private void CreateRelationshipMapView(SqlConnection connection, EntityMetadata entity)
         {
             using (var command = connection.CreateCommand())
             {
@@ -405,6 +535,28 @@ namespace DynamicsMigrationTool
                 ";
                 command.ExecuteNonQuery();
             }
+        }
+
+        private bool attributeToExclude(string attribute_LogicalName)
+        {
+            if (attribute_LogicalName != null)
+            { 
+                if (attribute_LogicalName == "createdby"
+                    || attribute_LogicalName == "createdbyexternalparty"
+                    || attribute_LogicalName == "createdon"
+                    || attribute_LogicalName == "createdonbehalfby"
+                    || attribute_LogicalName == "modifiedby"
+                    || attribute_LogicalName == "modifiedbyexternalparty"
+                    || attribute_LogicalName == "modifiedon"
+                    || attribute_LogicalName == "modifiedonbehalfby")
+                {
+                    return true;
+                }
+                return false;
+            }
+            return false;
+
+
         }
 
 
@@ -426,5 +578,6 @@ namespace DynamicsMigrationTool
                             "2. Select an entity from the \"Entity\" dropdown.\n" +
                             "3. Click \"Create Staging Table\"");
         }
+
     }
 }
