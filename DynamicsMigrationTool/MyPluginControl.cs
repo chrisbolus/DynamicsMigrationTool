@@ -46,8 +46,6 @@ namespace DynamicsMigrationTool
 
         private void MyPluginControl_Load(object sender, EventArgs e)
         {
-            ShowInfoNotification("This is a notification that can lead to XrmToolBox repository", new Uri("https://github.com/MscrmTools/XrmToolBox"));
-
             // Loads or creates the settings for the plugin
             if (!SettingsManager.Instance.TryLoad(GetType(), out mySettings))
             {
@@ -86,20 +84,11 @@ namespace DynamicsMigrationTool
             RetrieveAllEntitiesResponse metaDataResponse = new RetrieveAllEntitiesResponse();
             metaDataRequest.EntityFilters = EntityFilters.Entity;
 
-
-
             XmlDictionaryReaderQuotas myReaderQuotas = new XmlDictionaryReaderQuotas();
             myReaderQuotas.MaxNameTableCharCount = 2147483647;
 
-
-
             // Execute the request.
-
-
-
             metaDataResponse = (RetrieveAllEntitiesResponse)organizationService.Execute(metaDataRequest);
-
-
 
             var entities = metaDataResponse.EntityMetadata;
             return entities;

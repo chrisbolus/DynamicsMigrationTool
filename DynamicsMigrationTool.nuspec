@@ -2,7 +2,7 @@
 <package>
 	<metadata>
 		<id>DynamicsMigrationTool</id>
-		<version>1.0.0.0</version>
+		<version>1.0.0.2</version>
 		<title>DynamicsMigrationTool for XRMToolBox</title>
 		<authors>Chris Bolus, Tim Cane</authors>
 		<owners>chrisbolus</owners>
