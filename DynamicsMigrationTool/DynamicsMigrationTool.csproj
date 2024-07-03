@@ -307,6 +307,7 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="SourceToStagingGeneration.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

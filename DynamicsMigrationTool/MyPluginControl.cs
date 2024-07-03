@@ -24,6 +24,7 @@ using Microsoft.SqlServer.Management.Common;
 using View = Microsoft.SqlServer.Management.Smo.View;
 using Server = Microsoft.SqlServer.Management.Smo.Server;
 using System.Data.SqlClient;
+using DynamicsMigrationTool;
 
 namespace DynamicsMigrationTool
 {
@@ -414,6 +415,11 @@ namespace DynamicsMigrationTool
                             "1. Populate the \"Staging Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DMT;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
                             "2. Select an entity from the \"Entity\" dropdown.\n" +
                             "3. Click \"Create Staging Table\"");
+        }
+
+        public void test_btn_Click(object sender, EventArgs e)
+        {
+            SourceToStagingGeneration.CreatePackage("account");
         }
     }
 }
