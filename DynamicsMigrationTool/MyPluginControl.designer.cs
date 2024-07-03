@@ -34,6 +34,7 @@
             this.EntityName_Lbl = new System.Windows.Forms.Label();
             this.StagingDatabase_Lbl = new System.Windows.Forms.Label();
             this.About_btn = new System.Windows.Forms.Button();
+            this.CreateSrcVwTmpl_Btn = new System.Windows.Forms.Button();
             this.test_btn = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -97,6 +98,16 @@
             this.About_btn.UseWaitCursor = true;
             this.About_btn.Click += new System.EventHandler(this.About_btn_Click);
             // 
+            // CreateSrcVwTmpl_Btn
+            // 
+            this.CreateSrcVwTmpl_Btn.Location = new System.Drawing.Point(256, 119);
+            this.CreateSrcVwTmpl_Btn.Name = "CreateSrcVwTmpl_Btn";
+            this.CreateSrcVwTmpl_Btn.Size = new System.Drawing.Size(227, 32);
+            this.CreateSrcVwTmpl_Btn.TabIndex = 11;
+            this.CreateSrcVwTmpl_Btn.Text = "Create Source View Template";
+            this.CreateSrcVwTmpl_Btn.UseVisualStyleBackColor = true;
+            this.CreateSrcVwTmpl_Btn.Click += new System.EventHandler(this.CreateSrcVwTmpl_Btn_Click);
+            // 
             // test_btn
             // 
             this.test_btn.Location = new System.Drawing.Point(653, 100);
@@ -112,6 +123,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.CreateSrcVwTmpl_Btn);
             this.Controls.Add(this.test_btn);
             this.Controls.Add(this.About_btn);
             this.Controls.Add(this.StagingDatabase_Lbl);
@@ -136,6 +148,7 @@
         private System.Windows.Forms.Label EntityName_Lbl;
         private System.Windows.Forms.Label StagingDatabase_Lbl;
         private System.Windows.Forms.Button About_btn;
+        private System.Windows.Forms.Button CreateSrcVwTmpl_Btn;
         private System.Windows.Forms.Button test_btn;
     }
 }
