@@ -39,11 +39,14 @@ namespace DynamicsMigrationTool
             InitializeComponent();
         }
 
-        private class Attribute_StagingInfo
+        private class EntityAttribute_AdditionalInfo
         {
             public string DBDataType;
-            public bool CreateColumn = true;
-            public bool CreateSourceField = false;
+            public string SSISDataType;
+            public int? StringLength = null;
+            public bool isValidForMigration = true;
+            public bool isLookup = false;
+            public bool isPrimaryKey = false;
             public string DynEntityLookupTargets_List;
             public string DynDataType_Readable;
         }
@@ -67,6 +70,7 @@ namespace DynamicsMigrationTool
                     SetEntityList();
                 }
 
+                sourceDBConnection_txtb.Text = mySettings.SourceDBConnectionString;
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
 
             }
@@ -176,23 +180,23 @@ namespace DynamicsMigrationTool
 
                 var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
 
-                var stagingDBConnectionString = new SqlConnection();
+                var sourceDBConnectionString = new SqlConnection();
 
-                Boolean isStagingDBConnectionValid = true;
+                Boolean isSourceDBConnectionValid = true;
                 try
                 {
-                    stagingDBConnectionString = new SqlConnection(mySettings.StagingDBConnectionString);
-                    stagingDBConnectionString.Open();
+                    sourceDBConnectionString = new SqlConnection(mySettings.SourceDBConnectionString);
+                    sourceDBConnectionString.Open();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Please review Staging Database Connection String:\n{mySettings.StagingDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DB;Integrated Security=True;");
-                    isStagingDBConnectionValid = false;
+                    MessageBox.Show($"Please review Source Database Connection String:\n{mySettings.SourceDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Source_DB;Integrated Security=True;");
+                    isSourceDBConnectionValid = false;
                 }
 
-                if (isStagingDBConnectionValid)
+                if (isSourceDBConnectionValid)
                 {
-                    CreateTemplateSourceView(stagingDBConnectionString, entityMetadata);
+                    CreateTemplateSourceView(sourceDBConnectionString, entityMetadata);
 
                     MessageBox.Show("Source View Template Created Successfully");
                 }
@@ -278,39 +282,35 @@ SELECT
 
                 foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
                 {
-                    if(attribute.IsValidForCreate == true || attribute.IsValidForUpdate == true)
+                    EntityAttribute_AdditionalInfo entAAI = Get_EntityAttribute_AdditionalInfo(attribute);
+
+
+                    if (entAAI.isValidForMigration)
                     {
-                        Attribute_StagingInfo attSI = Get_Attribute_StagingInfo(attribute);
+                        var targetListMessage = entAAI.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = {entAAI.DynEntityLookupTargets_List}.";
 
-                        var targetListMessage = attSI.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = { attSI.DynEntityLookupTargets_List}.";
-
-                        if (attSI.CreateColumn && (attribute.AttributeOf == null || (attribute.IsLogical == null || !attribute.IsLogical.Value)))
+                        command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS {entAAI.DBDataType}) AS {attribute.LogicalName}", 
+                                                                                $"Dynamics Attribute Type = {entAAI.DynDataType_Readable}.{targetListMessage}");
+                        if (entAAI.isLookup)
                         {
-                            command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS {attSI.DBDataType}) AS {attribute.LogicalName}", 
-                                                                                    $"Dynamics Attribute Type = {attSI.DynDataType_Readable}.{targetListMessage}");
-                        }
-                        if (attSI.CreateSourceField)
-                        {
-                            if (attribute.LogicalName == entity.PrimaryIdAttribute)
+                            if (entAAI.isPrimaryKey)
                             {
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source", 
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
                                                                                         $"DMT Field, used to handle the id of the record from the source system. Staging table requires this to be populated and unique when combined with Source_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader", 
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader",
                                                                                         $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with Leader_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS INT) AS Leader_System_Id", 
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS INT) AS Leader_System_Id",
                                                                                         $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with {attribute.LogicalName}_Leader.");
                             }
                             else
                             {
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source", 
+                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
                                                                                         $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}");
                             }
-
                         }
                     }
-
                 }
-                //removing final comma
+
                 command.CommandText += "\n--FROM ";
 
                 command.ExecuteNonQuery();
@@ -325,12 +325,13 @@ SELECT
             string addComma = isFirstLine ? " " : ",";
 
             return $"       {addComma}{queryLine}{new String(' ', spacingoffset)}--{comment}\n";
-
         }
 
 
         public void CreateStagingTable(SqlConnection connection, EntityMetadata entity)
         {
+            var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandTimeout = 0;
@@ -342,9 +343,9 @@ SELECT
                     Global_Id INT IDENTITY(1,1), 
                     Source_System_Id INT NOT NULL, 
                     Processing_Status INT NOT NULL, 
-                    FlagCreate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagCreate DEFAULT 1, 
-                    FlagUpdate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagUpdate DEFAULT 0, 
-                    FlagDelete BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagDelete DEFAULT 0, 
+                    FlagCreate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagCreate_{dateTimeNow} DEFAULT 1, 
+                    FlagUpdate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagUpdate_{dateTimeNow} DEFAULT 0, 
+                    FlagDelete BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagDelete_{dateTimeNow} DEFAULT 0, 
                     DateCreate DATETIME, 
                     DateUpdate DATETIME, 
                     DateDelete DATETIME, 
@@ -357,17 +358,15 @@ SELECT
 
                 foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
                 {
-                    if (attribute.IsValidForCreate == true || attribute.IsValidForUpdate == true)
-                    {
-                        Attribute_StagingInfo attSI = Get_Attribute_StagingInfo(attribute);
+                    EntityAttribute_AdditionalInfo entAAI = Get_EntityAttribute_AdditionalInfo(attribute);
 
-                        if (attSI.CreateColumn && (attribute.AttributeOf == null || (attribute.IsLogical == null || !attribute.IsLogical.Value)))
+                    if (entAAI.isValidForMigration)
+                    {
+                        command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName} {entAAI.DBDataType};\n";
+
+                        if (entAAI.isLookup)
                         {
-                            command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName} {attSI.DBDataType};\n";
-                        }
-                        if (attSI.CreateSourceField)
-                        {
-                            if (attribute.LogicalName == entity.PrimaryIdAttribute)
+                            if (entAAI.isPrimaryKey)
                             {
                                 command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255) NOT NULL;\n";
                                 command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Leader NVARCHAR(255);\n";
@@ -378,9 +377,9 @@ SELECT
                             {
                                 command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255);\n";
                             }
-
                         }
                     }
+
 
                 }
                 command.ExecuteNonQuery();
@@ -390,93 +389,131 @@ SELECT
             CreateRelationshipMapView(connection, entity);
         }
 
-        private Attribute_StagingInfo Get_Attribute_StagingInfo(AttributeMetadata attribute)
+        private EntityAttribute_AdditionalInfo Get_EntityAttribute_AdditionalInfo(AttributeMetadata attribute)
         {
-            var Stg = new Attribute_StagingInfo();
-            Stg.DynDataType_Readable = attribute.AttributeType?.ToString();      //this is modified in a few of cases below.
+            var EntAAI = new EntityAttribute_AdditionalInfo();
+            EntAAI.DynDataType_Readable = attribute.AttributeType?.ToString();      //this is modified in a few of cases below.
 
-            if (attribute.LogicalName == "EntityImage")
+            if ((attribute.AttributeOf != null && attribute.AttributeType == AttributeTypeCode.String)
+                || (attribute.IsValidForCreate == false && attribute.IsValidForUpdate == false)
+                || (attribute.IsLogical == true && attribute.IsPrimaryId == true)
+                || attribute.AttributeType == AttributeTypeCode.PartyList
+                || attribute.AttributeType == AttributeTypeCode.ManagedProperty)
             {
-                Stg.DBDataType = "IMAGE";
-                Stg.DynDataType_Readable = attribute.LogicalName;
+                //Bad Records
+                EntAAI.isValidForMigration = false;
             }
-            if (attribute.AttributeType == AttributeTypeCode.BigInt)
+            else if (attribute.AttributeType == AttributeTypeCode.BigInt)
             {
-                Stg.DBDataType = "BIGINT";
+                EntAAI.DBDataType = "BIGINT";
+                EntAAI.SSISDataType = "i8";
             }
-            else if (attribute.AttributeType == AttributeTypeCode.Boolean 
-                || attribute.AttributeType == AttributeTypeCode.EntityName 
-                || attribute.AttributeType == AttributeTypeCode.Picklist 
-                || attribute.AttributeType == AttributeTypeCode.State 
+            else if (attribute.AttributeType == AttributeTypeCode.Boolean
+                || attribute.AttributeType == AttributeTypeCode.EntityName
+                || attribute.AttributeType == AttributeTypeCode.Picklist
+                || attribute.AttributeType == AttributeTypeCode.State
                 || attribute.AttributeType == AttributeTypeCode.Status)
             {
-                Stg.DBDataType = "NVARCHAR(255)";
+                EntAAI.DBDataType = "NVARCHAR(255)";
+                EntAAI.SSISDataType = "wstr";
+                EntAAI.StringLength = 255;
             }
             else if (attribute.AttributeType == AttributeTypeCode.Customer
                 || attribute.AttributeType == AttributeTypeCode.Lookup
                 || attribute.AttributeType == AttributeTypeCode.Owner
                 || attribute.AttributeType == AttributeTypeCode.Uniqueidentifier)
             {
-                Stg.DBDataType = "UNIQUEIDENTIFIER";
-                Stg.CreateSourceField = true;
-                Stg.DynEntityLookupTargets_List = GetEntityLookupTargetsList(attribute);
+                EntAAI.DBDataType = "UNIQUEIDENTIFIER";
+                EntAAI.SSISDataType = "guid";
+                EntAAI.isLookup = true;
+                EntAAI.DynEntityLookupTargets_List = GetEntityLookupTargetsList(attribute);
+
+                if (attribute.AttributeType == AttributeTypeCode.Uniqueidentifier)
+                {
+                    var entityMetadata = Service.GetEntityMetadata(attribute.EntityLogicalName);
+                    if (entityMetadata.PrimaryIdAttribute == attribute.LogicalName)
+                    {
+                        EntAAI.isPrimaryKey = true;
+                    }
+                }
             }
             else if (attribute.AttributeType == AttributeTypeCode.DateTime)
             {
-                Stg.DBDataType = "DATETIME";
+                EntAAI.DBDataType = "DATETIME";
+                EntAAI.SSISDataType = "dbTimeStamp";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Decimal)
             {
-                Stg.DBDataType = "DECIMAL(23, 10)";
+                EntAAI.DBDataType = "DECIMAL(23, 10)";
+                EntAAI.SSISDataType = "numeric";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Double)
             {
-                Stg.DBDataType = "FLOAT";
+                EntAAI.DBDataType = "FLOAT";
+                EntAAI.SSISDataType = "r8";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Integer)
             {
-                Stg.DBDataType = "INT";
+                EntAAI.DBDataType = "INT";
+                EntAAI.SSISDataType = "i4";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Memo)
             {
-                Stg.DBDataType = "NVARCHAR(MAX)";
+                EntAAI.DBDataType = "NVARCHAR(MAX)";
+                EntAAI.SSISDataType = "nText";
+                EntAAI.StringLength = -1;
             }
             else if (attribute.AttributeType == AttributeTypeCode.Money)
             {
-                Stg.DBDataType = "MONEY";
+                EntAAI.DBDataType = "MONEY";
+                EntAAI.SSISDataType = "cy";
             }
             else if (attribute.AttributeType == AttributeTypeCode.String)
             {
                 var strlength = (int)attribute.GetType().GetProperty("MaxLength").GetValue(attribute);
-                Stg.DynDataType_Readable = Stg.DynDataType_Readable + $"({strlength})";
+                EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + $"({strlength})";
                 if (strlength > 4000)
                 {
-                    Stg.DBDataType = "NVARCHAR(MAX)";
+                    EntAAI.DBDataType = "NVARCHAR(MAX)";
+                    EntAAI.SSISDataType = "nText";
+                    EntAAI.StringLength = -1;
                 }
                 else
                 {
-                    Stg.DBDataType = $"NVARCHAR({strlength})";
+                    EntAAI.DBDataType = $"NVARCHAR({strlength})";
+                    EntAAI.SSISDataType = "wstr";
+                    EntAAI.StringLength = strlength;
                 }
             }
             else if (attribute.AttributeType == AttributeTypeCode.Virtual)
             {
                 if (attribute.AttributeTypeName.Value == "MultiSelectPicklistType")
                 {
-                    Stg.DBDataType = "NVARCHAR(1000)";
-                    Stg.DynDataType_Readable = Stg.DynDataType_Readable + " (MultiSelectPicklistType)";
+                    EntAAI.DBDataType = "NVARCHAR(1000)";
+                    EntAAI.SSISDataType = "wstr";
+                    EntAAI.StringLength = 1000;
+                    EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
+                }
+                else if (attribute.AttributeTypeName.Value == "ImageType")
+                {
+                    EntAAI.DBDataType = "IMAGE";
+                    EntAAI.SSISDataType = "image";
+                    EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
                 }
                 else
                 {
-                    Stg.CreateColumn = false;
+                    //attribute.AttributeTypeName.Value == "VirtualType"
+                    EntAAI.isValidForMigration = false;
                 }
             }
             else
             {
-                Stg.CreateColumn = false;
-                Stg.DBDataType = null;
+                //In theory this should never be hit.
+                EntAAI.isValidForMigration = false;
             }
 
-            return Stg;
+            return EntAAI;
+
         }
 
         private string GetEntityLookupTargetsList(AttributeMetadata attribute)
@@ -492,10 +529,12 @@ SELECT
 
         private void CreateIndexes(SqlConnection connection, EntityMetadata entity)
         {
+            var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = $@"
-                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT PK_{entity.LogicalName} PRIMARY KEY CLUSTERED (Source_System_Id ASC, {entity.PrimaryIdAttribute}_Source ASC) ON [PRIMARY]
+                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT PK_{entity.LogicalName}_{dateTimeNow} PRIMARY KEY CLUSTERED (Source_System_Id ASC, {entity.PrimaryIdAttribute}_Source ASC) ON [PRIMARY]
                 CREATE INDEX IDX_Processing_Status ON dbo.{entity.LogicalName}(Processing_Status, FlagCreate, DynCreateId, FlagUpdate, DynUpdateId, FlagDelete, DynDeleteId);
                 CREATE INDEX IDX_Global_Id ON dbo.{entity.LogicalName}(Global_Id);
                 CREATE INDEX IDX_CreateParameters ON dbo.{entity.LogicalName}(FlagCreate, DynCreateId);
@@ -550,6 +589,11 @@ SELECT
         }
 
 
+        private void sourceDBConnection_txtb_TextChanged(object sender, EventArgs e)
+        {
+            mySettings.SourceDBConnectionString = sourceDBConnection_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+        }
         private void stagingDBConnection_txtb_TextChanged(object sender, EventArgs e)
         {
             mySettings.StagingDBConnectionString = stagingDBConnection_txtb.Text;
