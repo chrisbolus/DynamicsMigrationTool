@@ -298,6 +298,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CRMHelper.cs" />
+    <Compile Include="EntityAttribute_AdditionalInfo.cs" />
     <Compile Include="MyPlugin.cs" />
     <Compile Include="MyPluginControl.cs">
       <SubType>UserControl</SubType>

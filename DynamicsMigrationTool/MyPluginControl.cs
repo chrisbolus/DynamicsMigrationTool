@@ -27,29 +27,21 @@ using System.Data.SqlClient;
 using System.Activities.Expressions;
 using System.Diagnostics.Metrics;
 using DynamicsMigrationTool;
+using ScintillaNET;
 
 namespace DynamicsMigrationTool
 {
     public partial class MyPluginControl : PluginControlBase
     {
         private Settings mySettings;
+        private SourceToStagingGeneration sourceToStagingGeneration;
 
         public MyPluginControl()
         {
             InitializeComponent();
         }
 
-        private class EntityAttribute_AdditionalInfo
-        {
-            public string DBDataType;
-            public string SSISDataType;
-            public int? StringLength = null;
-            public bool isValidForMigration = true;
-            public bool isLookup = false;
-            public bool isPrimaryKey = false;
-            public string DynEntityLookupTargets_List;
-            public string DynDataType_Readable;
-        }
+
 
 
         private void MyPluginControl_Load(object sender, EventArgs e)
@@ -68,10 +60,12 @@ namespace DynamicsMigrationTool
                 if(Service != null)
                 {
                     SetEntityList();
+                    sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
                 }
 
                 sourceDBConnection_txtb.Text = mySettings.SourceDBConnectionString;
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
+                sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
 
             }
         }
@@ -104,11 +98,6 @@ namespace DynamicsMigrationTool
         }
 
 
-        private void GetEntityMetaData()
-        {
-            GetEntities(Service);
-
-        }
 
         /// <summary>
         /// This event occurs when the plugin is closed
@@ -134,6 +123,16 @@ namespace DynamicsMigrationTool
                 LogInfo("Connection has changed to: {0}", detail.WebApplicationUrl);
             }
             SetEntityList();
+
+
+            if(sourceToStagingGeneration != null)
+            {
+                sourceToStagingGeneration.UpdateService(newService);
+            }
+            else 
+            {
+                sourceToStagingGeneration = new SourceToStagingGeneration(newService, mySettings);
+            }
         }
 
         private void CreateStgTbl_Btn_Click(object sender, EventArgs e)
@@ -261,7 +260,80 @@ namespace DynamicsMigrationTool
         }
 
 
+
         public void CreateTemplateSourceView(SqlConnection connection, EntityMetadata entity)
+        {
+            var fieldList = CRMHelper.GetFullFieldList(Service, entity);
+            var isFirstColumn = true;
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandTimeout = 0;
+                command.CommandText = $@"
+CREATE OR ALTER VIEW [dmt].{entity.LogicalName}_Template AS 
+--RENAME THIS VIEW! Remove the ""_Template\"" suffix, or replace it with your own suffix.
+--THIS IS A BASE VIEW OF ALL FIELDS FOR THE {entity.LogicalName.ToUpper()} ENTITY WITH ALL THE CASTS TO ENSURE ALL THE DATA ENDS UP IN THE CORRECT FORMAT. ADD A FROM STATEMENT TO PULL DATA FROM THE TABLE YOU WANT TO USE, AND REPLACE THE NULLS IN THE CASTS WITH THE FIELDS FROM YOUR SOURCE TABLE .
+
+SELECT
+";
+
+
+                foreach (var field in fieldList)
+                {
+                    var defaultValue = "NULL";
+                    var targetListMessage = field.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = {field.DynEntityLookupTargets_List}.";
+                    var commentText = $"Dynamics Attribute Type = {field.DynDataType_Readable}.{targetListMessage}";
+
+                    if (field.isDMTField == true)
+                    {
+                        if (field.isLookup)
+                        {
+                            if (field.isPrimaryKey)
+                            {
+                                if (field.fieldName == field.FieldDerivedFrom + "_Source")
+                                {
+                                    commentText = $"DMT Field, used to handle the id of the record from the source system. Staging table requires this to be populated and unique when combined with Source_System_Id.";
+                                }
+                                else
+                                {
+                                    commentText = $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with Leader_System_Id.";
+                                }
+                            }
+                            else
+                            {
+                                commentText = $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}";
+                            }
+                        }
+
+                        else if (field.fieldName == "Source_System_Id")
+                        {
+                            defaultValue = "1";
+                            commentText = "DMT Field, used to handle multiple source systems. Default value = 1. Change if using a second (etc.) source system.";
+                        }
+                        else if (field.fieldName == "Processing_Status")
+                        {
+                            defaultValue = "1";
+                            commentText = "DMT Field, used to handle relationship mapping. Default value = 1. Set to 0 for records that shouldn't be loaded.";
+                        }
+                        else if (field.fieldName == "Leader_System_Id")
+                        {
+                            commentText = $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with {entity.PrimaryIdAttribute}_Leader.";
+                        }
+                    }
+
+                    command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST({defaultValue} AS {field.DBDataType}) AS {field.fieldName}", commentText, isFirstColumn);
+
+                    isFirstColumn = false;
+                }
+
+                command.CommandText += "\n--FROM ";
+
+                command.ExecuteNonQuery();
+            }
+
+        }
+
+        public void CreateTemplateSourceView_Old(SqlConnection connection, EntityMetadata entity)
         {
             using (var command = connection.CreateCommand())
             {
@@ -274,37 +346,37 @@ CREATE OR ALTER VIEW [dmt].{entity.LogicalName}_Template AS
 SELECT
 ";
 
-                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(1 AS INT) AS Source_System_Id", 
+                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(1 AS INT) AS Source_System_Id",
                                                                         $"DMT Field, used to handle multiple source systems. Default value = 1. Change if using a second (etc.) source system.", true);
-                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(1 AS INT) AS Processing_Status", 
+                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(1 AS INT) AS Processing_Status",
                                                                         $"DMT Field, used to handle relationship mapping. Default value = 1. Set to 0 for records that shouldn't be loaded.");
 
 
                 foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
                 {
-                    EntityAttribute_AdditionalInfo entAAI = Get_EntityAttribute_AdditionalInfo(attribute);
+                    EntityAttribute_AdditionalInfo entAAI = CRMHelper.Get_EntityAttribute_AdditionalInfo(Service, attribute);
 
 
                     if (entAAI.isValidForMigration)
                     {
                         var targetListMessage = entAAI.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = {entAAI.DynEntityLookupTargets_List}.";
 
-                        command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS {entAAI.DBDataType}) AS {attribute.LogicalName}", 
+                        command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS {entAAI.DBDataType}) AS {attribute.LogicalName}",
                                                                                 $"Dynamics Attribute Type = {entAAI.DynDataType_Readable}.{targetListMessage}");
                         if (entAAI.isLookup)
                         {
                             if (entAAI.isPrimaryKey)
                             {
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
+                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
                                                                                         $"DMT Field, used to handle the id of the record from the source system. Staging table requires this to be populated and unique when combined with Source_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader",
+                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader",
                                                                                         $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with Leader_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS INT) AS Leader_System_Id",
+                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS INT) AS Leader_System_Id",
                                                                                         $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with {attribute.LogicalName}_Leader.");
                             }
                             else
                             {
-                                command.CommandText += TemplateSourceView_HandleSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
+                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
                                                                                         $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}");
                             }
                         }
@@ -318,19 +390,20 @@ SELECT
 
         }
 
-        public string TemplateSourceView_HandleSpacing(string queryLine, string comment, bool isFirstLine = false)
+        public string TemplateSourceView_HandleCommentSpacing(string queryLine, string comment, bool isFirstColumn = false)
         {
             int spacing = 80;
             int spacingoffset = queryLine.Length >= spacing ? 10 : spacing - queryLine.Length;
-            string addComma = isFirstLine ? " " : ",";
+            string addComma = isFirstColumn ? " " : ",";
 
             return $"       {addComma}{queryLine}{new String(' ', spacingoffset)}--{comment}\n";
         }
 
 
+
         public void CreateStagingTable(SqlConnection connection, EntityMetadata entity)
         {
-            var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var fieldList = CRMHelper.GetFullFieldList(Service, entity, true);
 
             using (var command = connection.CreateCommand())
             {
@@ -339,192 +412,21 @@ SELECT
                     IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].{entity.LogicalName}') AND type in (N'U'))
                     DROP TABLE [dbo].{entity.LogicalName}
 
-                    CREATE TABLE [dbo].{entity.LogicalName} ( 
-                    Global_Id INT IDENTITY(1,1), 
-                    Source_System_Id INT NOT NULL, 
-                    Processing_Status INT NOT NULL, 
-                    FlagCreate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagCreate_{dateTimeNow} DEFAULT 1, 
-                    FlagUpdate BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagUpdate_{dateTimeNow} DEFAULT 0, 
-                    FlagDelete BIT NOT NULL CONSTRAINT CN_{entity.LogicalName}_FlagDelete_{dateTimeNow} DEFAULT 0, 
-                    DateCreate DATETIME, 
-                    DateUpdate DATETIME, 
-                    DateDelete DATETIME, 
-                    DynCreateId UNIQUEIDENTIFIER, 
-                    DynUpdateId UNIQUEIDENTIFIER, 
-                    DynDeleteId UNIQUEIDENTIFIER 
-                    );" + "\n\n";
+                    CREATE TABLE [dbo].{entity.LogicalName} (";
 
-
-
-                foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
+                foreach (var field in fieldList)
                 {
-                    EntityAttribute_AdditionalInfo entAAI = Get_EntityAttribute_AdditionalInfo(attribute);
-
-                    if (entAAI.isValidForMigration)
-                    {
-                        command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName} {entAAI.DBDataType};\n";
-
-                        if (entAAI.isLookup)
-                        {
-                            if (entAAI.isPrimaryKey)
-                            {
-                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255) NOT NULL;\n";
-                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Leader NVARCHAR(255);\n";
-                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD Leader_System_Id INT;\n";
-
-                            }
-                            else
-                            {
-                                command.CommandText += $"ALTER TABLE dbo.{entity.LogicalName} ADD {attribute.LogicalName}_Source NVARCHAR(255);\n";
-                            }
-                        }
-                    }
-
-
+                    command.CommandText = command.CommandText + $"{field.fieldName} {field.DBDataType} {(field.stgNotNull ? " NOT NULL" : "")},\n";
                 }
+
+                command.CommandText = command.CommandText + "\n)";
+
                 command.ExecuteNonQuery();
             }
+        
 
             CreateIndexes(connection, entity);
             CreateRelationshipMapView(connection, entity);
-        }
-
-        private EntityAttribute_AdditionalInfo Get_EntityAttribute_AdditionalInfo(AttributeMetadata attribute)
-        {
-            var EntAAI = new EntityAttribute_AdditionalInfo();
-            EntAAI.DynDataType_Readable = attribute.AttributeType?.ToString();      //this is modified in a few of cases below.
-
-            if ((attribute.AttributeOf != null && attribute.AttributeType == AttributeTypeCode.String)
-                || (attribute.IsValidForCreate == false && attribute.IsValidForUpdate == false)
-                || (attribute.IsLogical == true && attribute.IsPrimaryId == true)
-                || attribute.AttributeType == AttributeTypeCode.PartyList
-                || attribute.AttributeType == AttributeTypeCode.ManagedProperty)
-            {
-                //Bad Records
-                EntAAI.isValidForMigration = false;
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.BigInt)
-            {
-                EntAAI.DBDataType = "BIGINT";
-                EntAAI.SSISDataType = "i8";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Boolean
-                || attribute.AttributeType == AttributeTypeCode.EntityName
-                || attribute.AttributeType == AttributeTypeCode.Picklist
-                || attribute.AttributeType == AttributeTypeCode.State
-                || attribute.AttributeType == AttributeTypeCode.Status)
-            {
-                EntAAI.DBDataType = "NVARCHAR(255)";
-                EntAAI.SSISDataType = "wstr";
-                EntAAI.StringLength = 255;
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Customer
-                || attribute.AttributeType == AttributeTypeCode.Lookup
-                || attribute.AttributeType == AttributeTypeCode.Owner
-                || attribute.AttributeType == AttributeTypeCode.Uniqueidentifier)
-            {
-                EntAAI.DBDataType = "UNIQUEIDENTIFIER";
-                EntAAI.SSISDataType = "guid";
-                EntAAI.isLookup = true;
-                EntAAI.DynEntityLookupTargets_List = GetEntityLookupTargetsList(attribute);
-
-                if (attribute.AttributeType == AttributeTypeCode.Uniqueidentifier)
-                {
-                    var entityMetadata = Service.GetEntityMetadata(attribute.EntityLogicalName);
-                    if (entityMetadata.PrimaryIdAttribute == attribute.LogicalName)
-                    {
-                        EntAAI.isPrimaryKey = true;
-                    }
-                }
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.DateTime)
-            {
-                EntAAI.DBDataType = "DATETIME";
-                EntAAI.SSISDataType = "dbTimeStamp";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Decimal)
-            {
-                EntAAI.DBDataType = "DECIMAL(23, 10)";
-                EntAAI.SSISDataType = "numeric";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Double)
-            {
-                EntAAI.DBDataType = "FLOAT";
-                EntAAI.SSISDataType = "r8";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Integer)
-            {
-                EntAAI.DBDataType = "INT";
-                EntAAI.SSISDataType = "i4";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Memo)
-            {
-                EntAAI.DBDataType = "NVARCHAR(MAX)";
-                EntAAI.SSISDataType = "nText";
-                EntAAI.StringLength = -1;
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Money)
-            {
-                EntAAI.DBDataType = "MONEY";
-                EntAAI.SSISDataType = "cy";
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.String)
-            {
-                var strlength = (int)attribute.GetType().GetProperty("MaxLength").GetValue(attribute);
-                EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + $"({strlength})";
-                if (strlength > 4000)
-                {
-                    EntAAI.DBDataType = "NVARCHAR(MAX)";
-                    EntAAI.SSISDataType = "nText";
-                    EntAAI.StringLength = -1;
-                }
-                else
-                {
-                    EntAAI.DBDataType = $"NVARCHAR({strlength})";
-                    EntAAI.SSISDataType = "wstr";
-                    EntAAI.StringLength = strlength;
-                }
-            }
-            else if (attribute.AttributeType == AttributeTypeCode.Virtual)
-            {
-                if (attribute.AttributeTypeName.Value == "MultiSelectPicklistType")
-                {
-                    EntAAI.DBDataType = "NVARCHAR(1000)";
-                    EntAAI.SSISDataType = "wstr";
-                    EntAAI.StringLength = 1000;
-                    EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
-                }
-                else if (attribute.AttributeTypeName.Value == "ImageType")
-                {
-                    EntAAI.DBDataType = "IMAGE";
-                    EntAAI.SSISDataType = "image";
-                    EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
-                }
-                else
-                {
-                    //attribute.AttributeTypeName.Value == "VirtualType"
-                    EntAAI.isValidForMigration = false;
-                }
-            }
-            else
-            {
-                //In theory this should never be hit.
-                EntAAI.isValidForMigration = false;
-            }
-
-            return EntAAI;
-
-        }
-
-        private string GetEntityLookupTargetsList(AttributeMetadata attribute)
-        {
-            if(attribute.GetType().GetProperty("Targets") != null)
-            {
-                var targets = (string[])attribute.GetType().GetProperty("Targets").GetValue(attribute);
-
-                return String.Join(",", targets);
-            }
-            else return null;
         }
 
         private void CreateIndexes(SqlConnection connection, EntityMetadata entity)
@@ -535,8 +437,10 @@ SELECT
             {
                 command.CommandText = $@"
                 ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT PK_{entity.LogicalName}_{dateTimeNow} PRIMARY KEY CLUSTERED (Source_System_Id ASC, {entity.PrimaryIdAttribute}_Source ASC) ON [PRIMARY]
+                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagCreate_{dateTimeNow}]  DEFAULT (1) FOR [FlagCreate]
+                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagUpdate_{dateTimeNow}]  DEFAULT (0) FOR [FlagUpdate]
+                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagDelete_{dateTimeNow}]  DEFAULT (0) FOR [FlagDelete]
                 CREATE INDEX IDX_Processing_Status ON dbo.{entity.LogicalName}(Processing_Status, FlagCreate, DynCreateId, FlagUpdate, DynUpdateId, FlagDelete, DynDeleteId);
-                CREATE INDEX IDX_Global_Id ON dbo.{entity.LogicalName}(Global_Id);
                 CREATE INDEX IDX_CreateParameters ON dbo.{entity.LogicalName}(FlagCreate, DynCreateId);
                 CREATE INDEX IDX_UpdateParameters ON dbo.{entity.LogicalName}(FlagUpdate, DynUpdateId);
                 CREATE INDEX IDX_DeleteParameters ON dbo.{entity.LogicalName}(FlagDelete, DynDeleteId);
@@ -599,6 +503,20 @@ SELECT
             mySettings.StagingDBConnectionString = stagingDBConnection_txtb.Text;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
+        private void sourceToStagingLocation_txtb_TextChanged(object sender, EventArgs e)
+        {
+            mySettings.SourceToStagingLocationString = sourceToStagingLocation_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+
+            if (sourceToStagingGeneration != null)
+            {
+                sourceToStagingGeneration.UpdateSettings(mySettings);
+            }
+            else
+            {
+                sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
+            }
+        }
 
         private void About_btn_Click(object sender, EventArgs e)
         {
@@ -615,7 +533,19 @@ SELECT
 
         public void test_btn_Click(object sender, EventArgs e)
         {
-            SourceToStagingGeneration.CreatePackage("account");
+        }
+
+        private void CreateS2SPackage_Btn_Click(object sender, EventArgs e)
+        {
+            ExecuteMethod(TestConnection);
+
+            if (IsEntitySelected())
+            {
+                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
+            }
+
         }
     }
 }
