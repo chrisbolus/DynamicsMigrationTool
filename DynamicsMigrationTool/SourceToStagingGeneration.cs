@@ -62,7 +62,7 @@ namespace DynamicsMigrationTool
                             ));
 
 
-            GenerateXML_Executable_DataFlow_SimpleS2S(package, "account", 1);
+            GenerateXML_Executable_DataFlow_SimpleS2S(package, entityName, 1);
 
             try
             {
