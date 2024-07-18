@@ -509,6 +509,7 @@ SELECT
             SettingsManager.Instance.Save(GetType(), mySettings);
 
             if (sourceToStagingGeneration != null)
+            if (sourceToStagingGeneration != null)
             {
                 sourceToStagingGeneration.UpdateSettings(mySettings);
             }

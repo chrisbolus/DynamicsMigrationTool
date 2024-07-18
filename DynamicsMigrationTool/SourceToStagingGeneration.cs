@@ -1,4 +1,5 @@
-﻿using Microsoft.Xrm.Sdk;
+﻿using Microsoft.SqlServer.Management.Smo;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Extensions;
 using ScintillaNET;
 using System;
@@ -29,7 +30,7 @@ namespace DynamicsMigrationTool
         public SourceToStagingGeneration(IOrganizationService service, Settings MySettings)
         {
             Service = service;
-            mySettings = mySettings;
+            mySettings = MySettings;
         }
         internal void UpdateService(IOrganizationService newService)
         {
@@ -40,29 +41,26 @@ namespace DynamicsMigrationTool
             mySettings = newSettings;
         }
 
+
+
         public void CreatePackage(string entityName)
         {
             var package = new XDocument();
             var packageLocation = mySettings.SourceToStagingLocationString;
 
-            package.Add(new XElement(DTS + "Executable",
-                            new XAttribute(XNamespace.Xmlns + "DTS", DTS.ToString()),
-                            new XAttribute(DTS + "ObjectName", entityName),
-                            new XAttribute(DTS + "refId", "Package"),
-                            new XAttribute(DTS + "DTSID", "{00000000-0000-0000-1000-000000000000}"),
-                            new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
-                            new XAttribute(DTS + "VersionBuild", "1"),
-                            new XAttribute(DTS + "VersionGUID", "{00000000-0000-0000-1000-000000000000}"),
-                            new XElement(DTS + "Property", "8",
-                                new XAttribute (DTS + "Name", "PackageFormatVersion")
-                            ),
-                            new XElement(DTS + "Variables"),
-                            new XElement(DTS + "Executables"),
-                            new XElement(DTS + "PrecedenceConstraints")
-                            ));
+            GenerateXML_SSISPackageBase(package, entityName);
+            GenerateXML_Executable_SQLTask_S2STruncateStagingTable(package, entityName);
+            GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
+            GenerateXML_Executable_DataFlow_SimpleS2S(package, entityName);
+            GenerateXML_Executable_SQLTask_S2SReAddPK(package, entityName);
+            GenerateXML_Executable_SQLTask_S2SReAddIndexes(package, entityName);
 
-
-            GenerateXML_Executable_DataFlow_SimpleS2S(package, entityName, 1);
+            //Constraints link Executables
+            int ConstraintNumber = 1;
+            GenerateXML_Executable_SQLTask_AddConstraint(package, "Truncate Staging Table", "Drop Indexes and PK", ConstraintNumber++);
+            GenerateXML_Executable_SQLTask_AddConstraint(package, "Drop Indexes and PK", "Data Flow Task_1", ConstraintNumber++);
+            GenerateXML_Executable_SQLTask_AddConstraint(package, "Data Flow Task_1", "ReAdd PK", ConstraintNumber++);
+            GenerateXML_Executable_SQLTask_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
 
             try
             {
@@ -71,20 +69,129 @@ namespace DynamicsMigrationTool
             }
             catch (Exception e)
             {
-                MessageBox.Show("SSIS package failed to create.");
+                MessageBox.Show("SSIS package failed to save. Check Source To Staging SSIS Package Location is correct.");
             }
+
+            addSSISPackageToProject(entityName);
         }
 
-        private void GenerateXML_Executable_DataFlow_SimpleS2S(XDocument package, string entityName, int executableNumber)
+
+
+
+        private void GenerateXML_SSISPackageBase(XDocument package, string entityName)
         {
-            var executables = package.Elements(DTS + "Executable").FirstOrDefault().Elements(DTS + "Executables").FirstOrDefault();
+            package.Add(new XElement(DTS + "Executable",
+                            new XAttribute(XNamespace.Xmlns + "DTS", DTS.ToString()),
+                            new XAttribute(DTS + "ObjectName", entityName),
+                            new XAttribute(DTS + "refId", "Package"),
+                            new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
+                            new XAttribute(DTS + "CreationName", "Microsoft.Package"),
+                            new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
+                            new XAttribute(DTS + "VersionBuild", "1"),
+                            new XAttribute(DTS + "VersionGUID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XElement(DTS + "Property", "8",
+                                new XAttribute(DTS + "Name", "PackageFormatVersion")
+                            ),
+                            new XElement(DTS + "Variables"),
+                            new XElement(DTS + "Executables"),
+                            new XElement(DTS + "PrecedenceConstraints")
+                            ));
+        }
+
+        private void GenerateXML_Executable_SQLTask_S2STruncateStagingTable(XDocument package, string entityName)
+        {
+            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLQuery = $"truncate table dbo.{entityName}";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, "Truncate Staging Table", SQLConnection, SQLQuery);
+        }
+
+        private void GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(XDocument package, string entityName)
+        {
+            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLQuery = $"declare @idxStr nvarchar(2000);\nSELECT @idxStr = (\nselect 'drop index '+o.name+'.'+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key <> 1\nand i.index_id > 0\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @idxStr;\n\ndeclare @pKStr nvarchar(500);\nSELECT @pKStr = (\nselect 'alter table '+o.name+' drop constraint '+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key = 1\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @pKStr;\n";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, "Drop Indexes and PK", SQLConnection, SQLQuery);
+        }
+        private void GenerateXML_Executable_SQLTask_S2SReAddPK(XDocument package, string entityName)
+        {
+            var PrimaryIdAttribute = Service.GetEntityMetadata(entityName).PrimaryIdAttribute;
+            var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLQuery = $"ALTER TABLE [dbo].[{entityName}] ADD CONSTRAINT [PK_{entityName}_{dateTimeNow}] PRIMARY KEY CLUSTERED \n(\n\t[Source_System_Id] ASC,\n\t[{PrimaryIdAttribute}_Source] ASC\n) ON [PRIMARY]\nGO";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd PK", SQLConnection, SQLQuery);
+        }
+        private void GenerateXML_Executable_SQLTask_S2SReAddIndexes(XDocument package, string entityName)
+        {
+            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLQuery = $"CREATE NONCLUSTERED INDEX [IDX_CreateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                $"CREATE NONCLUSTERED INDEX [IDX_UpdateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                $"CREATE NONCLUSTERED INDEX [IDX_DeleteParameters] ON [dbo].[{entityName}]\n(\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                $"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC,\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC,\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd Indexes", SQLConnection, SQLQuery);
+        }
+
+        private void GenerateXML_Executable_SQLTask_AddTask(XDocument package, string executableName, string SQLConnection, string SQLQuery)
+        {
+            XNamespace sqlTask = "www.microsoft.com/sqlserver/dts/tasks/sqltask";
+
+            var executables = package.Element(DTS + "Executable").Element(DTS + "Executables");
+
+            XElement executable = new XElement(DTS + "Executable",
+                new XAttribute(DTS + "refId", $"Package\\{executableName}"),
+                new XAttribute(DTS + "ObjectName", executableName),
+                new XAttribute(DTS + "CreationName", "Microsoft.ExecuteSQLTask"),
+                new XAttribute(DTS + "Description", "Execute SQL Task"),
+                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                new XAttribute(DTS + "ExecutableType", "Microsoft.ExecuteSQLTask"),
+                new XAttribute(DTS + "LocaleID", "-1"),
+                new XAttribute(DTS + "ThreadHint", "0"),
+                new XElement(DTS + "Variables"),
+                new XElement(DTS + "ObjectData",
+                    new XElement(sqlTask + "SqlTaskData",
+                        new XAttribute(XNamespace.Xmlns + "sqlTask", sqlTask.ToString()),
+                        new XAttribute(sqlTask + "Connection", SQLConnection),
+                        new XAttribute(sqlTask + "SqlStatementSource", SQLQuery)
+                    )
+                )
+            );
+
+            executables.Add(executable);
+        }
+
+        private void GenerateXML_Executable_SQLTask_AddConstraint(XDocument package, string executableName_from, string executableName_to, int ConstraintNumber)
+        {
+            var precedenceConstraints = package.Element(DTS + "Executable").Element(DTS + "PrecedenceConstraints");
+
+            XElement precedenceConstraint = new XElement(DTS + "PrecedenceConstraint",
+                new XAttribute(DTS + "From", $"Package\\{executableName_from}"),
+                new XAttribute(DTS + "To",   $"Package\\{executableName_to}"),
+                new XAttribute(DTS + "refId", $"Package.PrecedenceConstraints[Constraint_{ConstraintNumber}]"),
+                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                new XAttribute(DTS + "LogicalAnd", "True"),
+                new XAttribute(DTS + "ObjectName", "Constraint"),
+                new XAttribute(DTS + "CreationName", string.Empty)
+            );
+
+            precedenceConstraints.Add(precedenceConstraint);
+        }
+
+        private void GenerateXML_Executable_DataFlow_SimpleS2S(XDocument package, string entityName)
+        {
+            int dataFlowNumber = 1;
+
+            var executables = package.Element(DTS + "Executable").Element(DTS + "Executables");
 
             var executable = new XElement(DTS + "Executable",
-                                new XAttribute(DTS + "DTSID", DefineGuid("00000000-0000-0000-0000-010000000000", executableNumber, true)),
-                                new XAttribute(DTS + "refId", "Package\\Data Flow Task_" + executableNumber),
+                                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                                new XAttribute(DTS + "refId", "Package\\Data Flow Task_" + dataFlowNumber),
                                 new XAttribute(DTS + "CreationName", "Microsoft.Pipeline"),
                                 new XAttribute(DTS + "ExecutableType", "Microsoft.Pipeline"),
-                                new XAttribute(DTS + "ObjectName", "Data Flow Task_" + executableNumber),
+                                new XAttribute(DTS + "ObjectName", "Data Flow Task_" + dataFlowNumber),
                                 new XElement(DTS + "ObjectData",
                                     new XElement("pipeline",
                                         new XAttribute("version", "1"),
@@ -94,14 +201,14 @@ namespace DynamicsMigrationTool
 
             executables.Add(executable);
 
-            var components = executable.Elements(DTS + "ObjectData").FirstOrDefault().Elements("pipeline").FirstOrDefault().Elements("components").FirstOrDefault();
+            var components = executable.Element(DTS + "ObjectData").Element("pipeline").Element("components");
 
-            GenerateXML_DataFlow_Component_Source(components, entityName, executableNumber);
-            GenerateXML_DataFlow_Component_Staging(components, entityName, executableNumber);
+            GenerateXML_DataFlow_Component_Source(components, entityName, dataFlowNumber);
+            GenerateXML_DataFlow_Component_Staging(components, entityName, dataFlowNumber);
 
-            var paths = executable.Elements(DTS + "ObjectData").FirstOrDefault().Elements("pipeline").FirstOrDefault().Elements("paths").FirstOrDefault();
+            var paths = executable.Element(DTS + "ObjectData").Element("pipeline").Element("paths");
 
-            var pathStringBase = "Package\\Data Flow Task_" + executableNumber;
+            var pathStringBase = "Package\\Data Flow Task_" + dataFlowNumber;
 
             paths.Add(new XElement("path",
                             new XAttribute("refId", pathStringBase + ".Paths[OLE DB Source Output]"),
@@ -111,10 +218,10 @@ namespace DynamicsMigrationTool
                             ));
         }
 
-        private void GenerateXML_DataFlow_Component_Source(XElement components, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Source(XElement components, string entityName, int dataFlowNumber)
         {
             var component = new XElement("component",
-                                new XAttribute("refId", $"Package\\Data Flow Task_{executableNumber}\\OLE DB Source"),
+                                new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source"),
                                 new XAttribute("componentClassID", "Microsoft.OLEDBSource"),
                                 new XAttribute("name", "OLE DB Source"),
                                 new XAttribute("usesDispositions", "true"),
@@ -124,15 +231,15 @@ namespace DynamicsMigrationTool
             components.Add(component);
 
             GenerateXML_DataFlow_Component_Properties(component, entityName);
-            GenerateXML_DataFlow_Component_Connections(component, entityName, executableNumber);
-            GenerateXML_DataFlow_Component_Source_Output(component, entityName, executableNumber);
+            GenerateXML_DataFlow_Component_Connections(component, entityName, dataFlowNumber);
+            GenerateXML_DataFlow_Component_Source_Output(component, entityName, dataFlowNumber);
         }
 
 
-        private void GenerateXML_DataFlow_Component_Staging(XElement components, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Staging(XElement components, string entityName, int dataFlowNumber)
         {
             var component = new XElement("component",
-                                new XAttribute("refId", $"Package\\Data Flow Task_{executableNumber}\\OLE DB Destination"),
+                                new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination"),
                                 new XAttribute("componentClassID", "Microsoft.OLEDBDestination"),
                                 new XAttribute("name", "OLE DB Destination"),
                                 new XAttribute("usesDispositions", "true"),
@@ -142,20 +249,20 @@ namespace DynamicsMigrationTool
             components.Add(component);
 
             GenerateXML_DataFlow_Component_Properties(component, entityName);
-            GenerateXML_DataFlow_Component_Connections(component, entityName, executableNumber);
-            GenerateXML_DataFlow_Component_Staging_Input(component, entityName, executableNumber);
-            GenerateXML_DataFlow_Component_Staging_Output(component, entityName, executableNumber);
+            GenerateXML_DataFlow_Component_Connections(component, entityName, dataFlowNumber);
+            GenerateXML_DataFlow_Component_Staging_Input(component, entityName, dataFlowNumber);
+            GenerateXML_DataFlow_Component_Staging_Output(component, entityName, dataFlowNumber);
         }
 
 
 
-        private void GenerateXML_DataFlow_Component_Source_Output(XElement component, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Source_Output(XElement component, string entityName, int dataFlowNumber)
         {
             var outputs = new XElement("outputs");
             component.Add(outputs);
 
-            var data_path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Source.Outputs[OLE DB Source Output]";
-            var error_path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Source.Outputs[OLE DB Source Error Output]";
+            var data_path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Outputs[OLE DB Source Output]";
+            var error_path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Outputs[OLE DB Source Error Output]";
 
 
             var data_Output = new XElement("output",
@@ -275,13 +382,13 @@ namespace DynamicsMigrationTool
             data_ExternalMetadataColumns.Add(externalMetadataColumn);
         }
 
-        private void GenerateXML_DataFlow_Component_Staging_Input(XElement component, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Staging_Input(XElement component, string entityName, int dataFlowNumber)
         {
             var inputs = new XElement("inputs");
             component.Add(inputs);
 
-            var data_path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
-            var lineage_path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Source.Outputs[OLE DB Source Output]";
+            var data_path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
+            var lineage_path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Outputs[OLE DB Source Output]";
 
 
 
@@ -322,10 +429,10 @@ namespace DynamicsMigrationTool
             data_Input.Add(data_InputColumns);
             data_Input.Add(data_ExternalMetadataColumns);
         }
-        private void GenerateXML_DataFlow_Component_Staging_Output(XElement component, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Staging_Output(XElement component, string entityName, int dataFlowNumber)
         {
-            var path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Destination.Outputs[OLE DB Destination Error Output]";
-            var input_path = $"Package\\Data Flow Task_{executableNumber}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
+            var path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Outputs[OLE DB Destination Error Output]";
+            var input_path = $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
 
             XElement outputs = new XElement("outputs",
                 new XElement("output",
@@ -341,7 +448,7 @@ namespace DynamicsMigrationTool
 
             component.Add(outputs);
 
-            var outputColumns = outputs.Elements("output").FirstOrDefault().Elements("outputColumns").FirstOrDefault();
+            var outputColumns = outputs.Element("output").Element("outputColumns");
 
             GenerateXML_DataFlow_Component_AddErrorOutputColumns(outputColumns, path);
         }
@@ -365,7 +472,7 @@ namespace DynamicsMigrationTool
                         ));
         }
 
-        private void GenerateXML_DataFlow_Component_Connections(XElement component, string entityName, int executableNumber)
+        private void GenerateXML_DataFlow_Component_Connections(XElement component, string entityName, int dataFlowNumber)
         {
             var connections = new XElement("connections");
 
@@ -373,7 +480,7 @@ namespace DynamicsMigrationTool
             if (component.Attribute("componentClassID").Value == "Microsoft.OLEDBDestination")
             {
                 connections.Add(new XElement("connection",
-                                        new XAttribute("refId", $"Package\\Data Flow Task_{executableNumber}\\OLE DB Destination.Connections[OleDbConnection]"),
+                                        new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Connections[OleDbConnection]"),
                                         new XAttribute("connectionManagerID", "{00000000-0000-0000-0000-000000000000}:external"),
                                         new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.Staging_DMT]"),
                                         new XAttribute("name", "OleDbConnection")));
@@ -381,7 +488,7 @@ namespace DynamicsMigrationTool
             else if (component.Attribute("componentClassID").Value == "Microsoft.OLEDBSource")
             {
                 connections.Add(new XElement("connection",
-                                        new XAttribute("refId", $"Package\\Data Flow Task_{executableNumber}\\OLE DB Source.Connections[OleDbConnection]"),
+                                        new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Connections[OleDbConnection]"),
                                         new XAttribute("connectionManagerID", "{11111111-1111-1111-1111-111111111111}:external"),
                                         new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.AdventureWorks2022]"),
                                         new XAttribute("name", "OleDbConnection")));
@@ -519,10 +626,10 @@ namespace DynamicsMigrationTool
         {
             //@Testing - tested successfully by adding output to RunAll package
 
-            var precedenceConstraints = package.Elements(DTS + "Executable").FirstOrDefault().Elements(DTS + "PrecedenceConstraints").FirstOrDefault();
+            var precedenceConstraints = package.Element(DTS + "Executable").Element(DTS + "PrecedenceConstraints");
 
             precedenceConstraints.Add(new XElement(DTS + "PrecedenceConstraint",
-                                        new XAttribute(DTS + "DTSID", DefineGuid("00000000-0000-0000-0000-200000000000", constraintNumber, true)),
+                                        new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
                                         new XAttribute(DTS + "From", "Package\\" + fromExecutable_Name),
                                         new XAttribute(DTS + "To", "Package\\" + toExecutable_Name),
                                         new XAttribute(DTS + "LogicalAnd", "True"),
@@ -551,6 +658,83 @@ namespace DynamicsMigrationTool
             package.Save(packageLocation + "\\" + entityName + ".dtsx");
         }
 
+
+        public void addSSISPackageToProject(string entityName)
+        {
+            var project = GetS2SProject();
+            var SSISPackageName = entityName.ToLower() + ".dtsx";
+
+            if (project != null)
+            {
+                XNamespace SSIS = "www.microsoft.com/SqlServer/SSIS";
+
+                var SSISProject = project.Element("Project").Element("DeploymentModelSpecificContent").Element("Manifest").Element(SSIS + "Project");
+                var SSISPackages = SSISProject.Element(SSIS + "Packages");
+                var existingPackage = SSISPackages.Elements(SSIS + "Package").Where(x => x.Attribute(SSIS + "Name").Value.ToLower() == SSISPackageName).FirstOrDefault();
+
+                if (existingPackage == null)
+                {
+                    SSISPackages.Add(new XElement(SSIS + "Package",
+                                        new XAttribute(SSIS + "Name", SSISPackageName),
+                                        new XAttribute(SSIS + "EntryPoint", "1")));
+
+                    var SSISPackageInfo = SSISProject.Element(SSIS + "DeploymentInfo").Element(SSIS + "PackageInfo");
+
+
+                    SSISPackageInfo.Add(new XElement(SSIS + "PackageMetaData",
+                        new XAttribute(SSIS + "Name", SSISPackageName),
+                        new XElement(SSIS + "Properties",
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "ID"), $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "Name"), entityName),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "VersionMajor"), "1"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "VersionMinor"), "0"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "VersionBuild"), "1"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "VersionComments"), string.Empty),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "VersionGUID"), $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "PackageFormatVersion"), "8"),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "Description"), string.Empty),
+                            new XElement(SSIS + "Property",
+                                new XAttribute(SSIS + "Name", "ProtectionLevel"), "1")
+                        ),
+                        new XElement(SSIS + "Parameters")
+                    ));
+
+                    try
+                    {
+                        project.Save(mySettings.SourceToStagingLocationString + "\\SourceToStaging.dtproj");
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("Unable to update \"SourceToStaging.dtproj\" to add the SSIS package to it.");
+                    }
+
+                }
+            }
+            else
+            {
+                MessageBox.Show("Unable to find a file called \"SourceToStaging.dtproj\" at the Source To Staging SSIS Package Location. Cannot update project to add new SSIS package.");
+            }
+        }
+
+
+        public XDocument GetS2SProject()
+        {
+            var path = mySettings.SourceToStagingLocationString + "\\SourceToStaging.dtproj";
+
+            var package = XDocument.Load(path);
+
+            return package;
+        }
+
     }
 }
 
@@ -566,7 +750,7 @@ namespace DynamicsMigrationTool
 //        <pipeline
 //          <components>
 //
-//            //Source
+//            ////Source
 //            <component
 //              <properties></properties>
 //              <connections></connections>
@@ -581,7 +765,7 @@ namespace DynamicsMigrationTool
 //              </outputs>
 //            </component>
 //
-//            //Staging
+//            ////Staging
 //            <component
 //              <properties> </properties>
 //              <connections> </connections>
