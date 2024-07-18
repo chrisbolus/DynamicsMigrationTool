@@ -23,7 +23,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>5</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -334,6 +334,52 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Web.WebView2.1.0.1343.22\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Web.WebView2.1.0.1343.22\build\Microsoft.Web.WebView2.targets'))" />
   </Target>
+	<Target Name="AssemblyVersion" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+		<PropertyGroup>
+			<!-- Define Constants -->
+			<MajorVersion>1</MajorVersion>
+			<AssemblyInfo>Properties\AssemblyInfo.cs</AssemblyInfo>
+			<AssemblyInfoContent>$([System.IO.File]::ReadAllText($(AssemblyInfo)))</AssemblyInfoContent>
+			<VersionRegex>(\[\s*assembly\s*:\s*AssemblyVersion\(\s*"(\d+)\.(\d+)\.(\d{1,2})(\d{2})\.(\d+)"\s*\)\])</VersionRegex>
+
+			<!-- Parse MajorVersion, Year, Month, Day, and Revision from AssemblyVersion -->
+			<AsmbMajorVersion>$([System.Text.RegularExpressions.Regex]::Match('$(AssemblyInfoContent)', '$(VersionRegex)').Groups[2].Value)</AsmbMajorVersion>
+			<AsmbYear>$([System.Text.RegularExpressions.Regex]::Match('$(AssemblyInfoContent)', '$(VersionRegex)').Groups[3].Value)</AsmbYear>
+			<AsmbMonth>$([System.Text.RegularExpressions.Regex]::Match('$(AssemblyInfoContent)', '$(VersionRegex)').Groups[4].Value)</AsmbMonth>
+			<AsmbDay>$([System.Text.RegularExpressions.Regex]::Match('$(AssemblyInfoContent)', '$(VersionRegex)').Groups[5].Value)</AsmbDay>
+			<AsmbRevision>$([System.Text.RegularExpressions.Regex]::Match('$(AssemblyInfoContent)', '$(VersionRegex)').Groups[6].Value)</AsmbRevision>
+
+			<!-- Current Date -->
+			<CurrentYear>$([System.DateTime]::Now.ToString("yyyy"))</CurrentYear>
+			<CurrentMonth>$([System.DateTime]::Now.ToString("MM"))</CurrentMonth>
+			<CurrentDay>$([System.DateTime]::Now.ToString("dd"))</CurrentDay>
+
+			<!-- Remove leading zero if present -->
+			<CurrentMonth Condition="$(CurrentMonth.StartsWith('0'))">$(CurrentMonth.Substring(1, 1))</CurrentMonth>
+
+			<!-- Increment Revision by one if MajorVersion, Year, Month, and Day match, otherwise start from one -->
+			<NewRevision Condition ="$(MajorVersion) == $(AsmbMajorVersion) AND $(CurrentYear) == $(AsmbYear) AND $(CurrentMonth) == $(AsmbMonth) AND $(CurrentDay) == $(AsmbDay)">$([MSBuild]::Add($(AsmbRevision), 1))</NewRevision>
+			<NewRevision Condition ="$(MajorVersion) != $(AsmbMajorVersion) OR $(CurrentYear) != $(AsmbYear) OR $(CurrentMonth) != $(AsmbMonth) OR $(CurrentDay) != $(AsmbDay)">1</NewRevision>
+
+
+			<!-- New AssemblyVersion Block -->
+			<NewAssemblyVersion>[assembly: AssemblyVersion("$(MajorVersion).$(CurrentYear).$(CurrentMonth)$(CurrentDay).$(NewRevision)")]</NewAssemblyVersion>
+		</PropertyGroup>
+
+		<!-- Write New AssemblyVersion Block to AssemblyInfo.cs file -->
+		<WriteLinesToFile File="$(AssemblyInfo)" Lines="$([System.Text.RegularExpressions.Regex]::Replace($(AssemblyInfoContent), $(VersionRegex), $(NewAssemblyVersion)))" Overwrite="true" />
+	</Target>
+	<Target Name="PostBuildMacros">
+		<GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+			<Output TaskParameter="Assemblies" ItemName="Targets" />
+		</GetAssemblyIdentity>
+		<ItemGroup>
+			<VersionNumber Include="@(Targets->'%(Version)')" />
+		</ItemGroup>
+	</Target>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros" Condition="$(ConfigurationName) == Release">
+		<Exec Command="$(SolutionDir)libs\nuget.exe pack $(SolutionDir)DynamicsMigrationTool.nuspec -OutputDirectory $(SolutionDir) -Version @(VersionNumber)" />
+	</Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
