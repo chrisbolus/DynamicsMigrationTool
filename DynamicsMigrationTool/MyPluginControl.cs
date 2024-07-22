@@ -618,7 +618,16 @@ SELECT
                             "Steps:\n" +
                             "1. Populate the \"Staging Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DMT;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
                             "2. Select an entity from the \"Entity\" dropdown.\n" +
-                            "3. Click \"Create Staging Table\"");
+                            "3. Click \"Create Staging Table\"\n\n\n" +
+
+
+                            "Creating Source View Templates\n" +
+                            "This will create a source view which is based of the metadata of the selected Dynamics entity. The concept is that the view Template is a starting point, and maps the data to the correct type to work with the other components of this tool. The view can be expanded by adding a Table to call data form, and then by replacing \"NULL\"s in the select with columns from the table. Each line contains a description of the column, either giving the equivalent datatype in dynamics, or if it's a field added to aid with migration, then a description as to how it's used.\n\n" +
+
+                            "Steps:\n" +
+                            "1. Populate the \"Source Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Adventureworks;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
+                            "2. Select an entity from the \"Entity\" dropdown.\n" +
+                            "3. Click \"Create Source View Templates\"");
         }
 
     }
