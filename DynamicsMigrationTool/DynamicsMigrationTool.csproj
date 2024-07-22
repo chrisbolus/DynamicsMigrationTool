@@ -334,7 +334,7 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Web.WebView2.1.0.1343.22\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Web.WebView2.1.0.1343.22\build\Microsoft.Web.WebView2.targets'))" />
   </Target>
-	<Target Name="AssemblyVersion" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+	<Target Name="AssemblyVersion" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild" Condition="$(ConfigurationName) == Release">
 		<PropertyGroup>
 			<!-- Define Constants -->
 			<MajorVersion>1</MajorVersion>
