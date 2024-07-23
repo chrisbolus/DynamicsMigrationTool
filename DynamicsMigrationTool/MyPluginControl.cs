@@ -26,6 +26,7 @@ using Server = Microsoft.SqlServer.Management.Smo.Server;
 using System.Data.SqlClient;
 using System.Activities.Expressions;
 using System.Diagnostics.Metrics;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace DynamicsMigrationTool
 {
@@ -156,16 +157,16 @@ namespace DynamicsMigrationTool
 
                 var stagingDBConnectionString = new SqlConnection();
 
-                Boolean isStagingDBConnectionValid = true;
+                Boolean isStagingDBConnectionValid = false;
                 try
                 {
                     stagingDBConnectionString = new SqlConnection(mySettings.StagingDBConnectionString);
                     stagingDBConnectionString.Open();
+                    isStagingDBConnectionValid = true;
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Please review Staging Database Connection String:\n{mySettings.StagingDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DB;Integrated Security=True;");
-                    isStagingDBConnectionValid = false;
                 }
 
                 if (isStagingDBConnectionValid)
@@ -190,19 +191,70 @@ namespace DynamicsMigrationTool
 
                 var sourceDBConnectionString = new SqlConnection();
 
-                Boolean isSourceDBConnectionValid = true;
+                Boolean isSourceDBConnectionValid = false;
                 try
                 {
                     sourceDBConnectionString = new SqlConnection(mySettings.SourceDBConnectionString);
-                    sourceDBConnectionString.Open();
+                    sourceDBConnectionString.Open(); 
+                    isSourceDBConnectionValid = true;
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Please review Source Database Connection String:\n{mySettings.SourceDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Source_DB;Integrated Security=True;");
-                    isSourceDBConnectionValid = false;
                 }
 
+
+                Boolean doesDMTSchemaExist = false;
+
                 if (isSourceDBConnectionValid)
+                {
+
+                    var getBadRecordsStg = new SqlCommand("select schema_id from sys.schemas where name = 'DMT'", sourceDBConnectionString);
+
+                    var schemaCount = 0;
+
+                    using (SqlDataReader rdr = getBadRecordsStg.ExecuteReader())
+                    {
+
+                        while (rdr.Read())
+                        {
+                            schemaCount = 1;
+                        }
+                    }
+                    if (schemaCount > 0)
+                    {
+                        doesDMTSchemaExist = true;
+                    }
+                    if (schemaCount == 0)
+                    {
+
+                        var result = MessageBox.Show("The Source Database requires the a schema called \"DMT\" which doesn't exist. Add schema to source database?", "Add DMT Schema?",
+                                                     MessageBoxButtons.YesNo,
+                                                     MessageBoxIcon.Question);
+                        if (result == DialogResult.Yes)
+                        {
+                            try
+                            {
+
+                                new SqlCommand("CREATE SCHEMA [DMT]", sourceDBConnectionString).ExecuteNonQuery();
+                                doesDMTSchemaExist = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show("Failed to create schema in Source Database. " + ex.Message);
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Unable to proceed without DMT schema.");
+                        }
+
+
+                    }
+
+                }
+
+                if (doesDMTSchemaExist)
                 {
                     CreateTemplateSourceView(sourceDBConnectionString, entityMetadata);
 
