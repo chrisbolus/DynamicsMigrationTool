@@ -34,6 +34,9 @@
             this.EntityName_Lbl = new System.Windows.Forms.Label();
             this.StagingDatabase_Lbl = new System.Windows.Forms.Label();
             this.About_btn = new System.Windows.Forms.Button();
+            this.CreateSrcVwTmpl_Btn = new System.Windows.Forms.Button();
+            this.sourceDBConnection_txtb = new System.Windows.Forms.TextBox();
+            this.SourceDatabase_Lbl = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
@@ -74,7 +77,7 @@
             // StagingDatabase_Lbl
             // 
             this.StagingDatabase_Lbl.AutoSize = true;
-            this.StagingDatabase_Lbl.Location = new System.Drawing.Point(42, 310);
+            this.StagingDatabase_Lbl.Location = new System.Drawing.Point(42, 313);
             this.StagingDatabase_Lbl.Name = "StagingDatabase_Lbl";
             this.StagingDatabase_Lbl.Size = new System.Drawing.Size(223, 16);
             this.StagingDatabase_Lbl.TabIndex = 9;
@@ -90,10 +93,40 @@
             this.About_btn.UseVisualStyleBackColor = true;
             this.About_btn.Click += new System.EventHandler(this.About_btn_Click);
             // 
+            // CreateSrcVwTmpl_Btn
+            // 
+            this.CreateSrcVwTmpl_Btn.Location = new System.Drawing.Point(256, 119);
+            this.CreateSrcVwTmpl_Btn.Name = "CreateSrcVwTmpl_Btn";
+            this.CreateSrcVwTmpl_Btn.Size = new System.Drawing.Size(227, 32);
+            this.CreateSrcVwTmpl_Btn.TabIndex = 11;
+            this.CreateSrcVwTmpl_Btn.Text = "Create Source View Template";
+            this.CreateSrcVwTmpl_Btn.UseVisualStyleBackColor = true;
+            this.CreateSrcVwTmpl_Btn.Click += new System.EventHandler(this.CreateSrcVwTmpl_Btn_Click);
+            // 
+            // sourceDBConnection_txtb
+            // 
+            this.sourceDBConnection_txtb.Location = new System.Drawing.Point(42, 276);
+            this.sourceDBConnection_txtb.Name = "sourceDBConnection_txtb";
+            this.sourceDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
+            this.sourceDBConnection_txtb.TabIndex = 12;
+            this.sourceDBConnection_txtb.TextChanged += new System.EventHandler(this.sourceDBConnection_txtb_TextChanged);
+            // 
+            // SourceDatabase_Lbl
+            // 
+            this.SourceDatabase_Lbl.AutoSize = true;
+            this.SourceDatabase_Lbl.Location = new System.Drawing.Point(42, 257);
+            this.SourceDatabase_Lbl.Name = "SourceDatabase_Lbl";
+            this.SourceDatabase_Lbl.Size = new System.Drawing.Size(220, 16);
+            this.SourceDatabase_Lbl.TabIndex = 13;
+            this.SourceDatabase_Lbl.Text = "Source Database Connection String";
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.SourceDatabase_Lbl);
+            this.Controls.Add(this.sourceDBConnection_txtb);
+            this.Controls.Add(this.CreateSrcVwTmpl_Btn);
             this.Controls.Add(this.About_btn);
             this.Controls.Add(this.StagingDatabase_Lbl);
             this.Controls.Add(this.EntityName_Lbl);
@@ -116,5 +149,8 @@
         private System.Windows.Forms.Label EntityName_Lbl;
         private System.Windows.Forms.Label StagingDatabase_Lbl;
         private System.Windows.Forms.Button About_btn;
+        private System.Windows.Forms.Button CreateSrcVwTmpl_Btn;
+        private System.Windows.Forms.TextBox sourceDBConnection_txtb;
+        private System.Windows.Forms.Label SourceDatabase_Lbl;
     }
 }

@@ -15,6 +15,7 @@ namespace DynamicsMigrationTool
     public class Settings
     {
         public string LastUsedOrganizationWebappUrl { get; set; }
-        public string StagingDBConnectionString { get; set; }
+        public string StagingDBConnectionString { get; set; } 
+        public string SourceDBConnectionString { get; set; }
     }
 }
