@@ -162,9 +162,17 @@ namespace DynamicsMigrationTool
 
                 if (isStagingDBConnectionValid)
                 {
-                    CreateStagingTable(stagingDBConnectionString, entityMetadata);
 
-                    MessageBox.Show("Staging Table Created Successfully");
+                    var result = MessageBox.Show($"This will create the [dbo].[{entityMetadata_noattr.LogicalName}] Table in the Staging Database.\n\nWARNING - If that table exists already, it will be DROPPED and recreated!\n\nAre you happy to proceed?", "Warning",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        CreateStagingTable(stagingDBConnectionString, entityMetadata);
+
+                        MessageBox.Show("Staging Table Created Successfully");
+                    }
                 }
             }
         }
@@ -186,7 +194,7 @@ namespace DynamicsMigrationTool
                 try
                 {
                     sourceDBConnectionString = new SqlConnection(mySettings.SourceDBConnectionString);
-                    sourceDBConnectionString.Open(); 
+                    sourceDBConnectionString.Open();
                     isSourceDBConnectionValid = true;
                 }
                 catch (Exception ex)
@@ -220,8 +228,8 @@ namespace DynamicsMigrationTool
                     {
 
                         var result = MessageBox.Show("The Source Database requires the a schema called \"DMT\" which doesn't exist. Add schema to source database?", "Add DMT Schema?",
-                                                     MessageBoxButtons.YesNo,
-                                                     MessageBoxIcon.Question);
+                                                        MessageBoxButtons.YesNo,
+                                                        MessageBoxIcon.Question);
                         if (result == DialogResult.Yes)
                         {
                             try
@@ -247,10 +255,19 @@ namespace DynamicsMigrationTool
 
                 if (doesDMTSchemaExist)
                 {
-                    CreateTemplateSourceView(sourceDBConnectionString, entityMetadata);
 
-                    MessageBox.Show("Source View Template Created Successfully");
+                    var result = MessageBox.Show($"This will create the [DMT].[{entityMetadata_noattr.LogicalName}_Template] View in the Source Database.\n\nWARNING - If that view exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        CreateTemplateSourceView(sourceDBConnectionString, entityMetadata);
+
+                        MessageBox.Show("Source View Template Created Successfully");
+                    }
                 }
+                
             }
         }
 
