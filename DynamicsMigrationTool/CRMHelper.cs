@@ -53,6 +53,7 @@ namespace DynamicsMigrationTool
                 EntAAI.DBDataType = "UNIQUEIDENTIFIER";
                 EntAAI.SSISDataType = "guid";
                 EntAAI.isLookup = true;
+                EntAAI.DynEntityLookupTargets_Count = GetEntityLookupTargetCount(attribute);
                 EntAAI.DynEntityLookupTargets_List = GetEntityLookupTargetsList(attribute);
 
                 if (attribute.AttributeType == AttributeTypeCode.Uniqueidentifier)
@@ -154,6 +155,16 @@ namespace DynamicsMigrationTool
             }
             else return null;
         }
+        public static int? GetEntityLookupTargetCount(AttributeMetadata attribute)
+        {
+            if (attribute.GetType().GetProperty("Targets") != null)
+            {
+                var targets = (string[])attribute.GetType().GetProperty("Targets").GetValue(attribute);
+
+                return targets.Count();
+            }
+            else return null;
+        }
 
         public static List<EntityAttribute_AdditionalInfo> GetFullFieldList(IOrganizationService Service, EntityMetadata entity, bool includeStagingFields = false)
         {
@@ -165,16 +176,25 @@ namespace DynamicsMigrationTool
 
                 if (entAAI.isValidForMigration) 
                 {
-                    eList.Add(entAAI);
 
                     if (entAAI.isLookup)
                     {
+
+                        eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTSourceField(entAAI));
                         if (entAAI.isPrimaryKey)
                         {
                             eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTIntegerField(entAAI.entityName, "Leader_System_Id"));
                             eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTLeaderField(entAAI));
                         }
-                        eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTSourceField(entAAI));
+                        else
+                        {
+                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTLookupTypeField(entAAI));
+                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTDynamicsLookupFields(entAAI));
+                        }
+                    }
+                    else
+                    {
+                        eList.Add(entAAI);
                     }
                 }
             }
@@ -184,12 +204,13 @@ namespace DynamicsMigrationTool
 
             if (includeStagingFields)
             {
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagCreate"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagUpdate"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagDelete"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynCreateId"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynUpdateId"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynDeleteId"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagCreate"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagUpdate"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagDelete"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynCreateId"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynUpdateId"));
+                //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynDeleteId"));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynId"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateCreate"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateUpdate"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateDelete"));

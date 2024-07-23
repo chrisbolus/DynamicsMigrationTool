@@ -22,6 +22,7 @@ namespace DynamicsMigrationTool
         public bool isPrimaryKey = false;
         public bool isDMTField = false;
         public string FieldDerivedFrom;
+        public int? DynEntityLookupTargets_Count = null;
         public string DynEntityLookupTargets_List;
         public string DynDataType_Readable;
 
@@ -71,6 +72,48 @@ namespace DynamicsMigrationTool
 
             return EAAI;
         }
+
+
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTLookupTypeField(EntityAttribute_AdditionalInfo EAAI_Existing)
+        {
+            var EAAI = new EntityAttribute_AdditionalInfo();
+
+            EAAI.fieldName = EAAI_Existing.fieldName + "_LookupType";
+            EAAI.entityName = EAAI_Existing.entityName;
+            EAAI.DBDataType = $"NVARCHAR(50)";
+            EAAI.stgNotNull = false;
+            EAAI.SSISDataType = "wstr";
+            EAAI.StringLength = 50;
+            EAAI.isValidForMigration = true;
+            EAAI.isLookup = true;
+            EAAI.isPrimaryKey = false;
+            EAAI.isDMTField = true;
+            EAAI.FieldDerivedFrom = EAAI_Existing.fieldName;
+
+            return EAAI;
+        }
+
+
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTDynamicsLookupFields(EntityAttribute_AdditionalInfo EAAI_Existing)
+        {
+            var EAAI = new EntityAttribute_AdditionalInfo();
+
+            EAAI.fieldName = EAAI_Existing.fieldName + "_DynamicsLookupFields";
+            EAAI.entityName = EAAI_Existing.entityName;
+            EAAI.DBDataType = $"NVARCHAR(500)";
+            EAAI.stgNotNull = false;
+            EAAI.SSISDataType = "wstr";
+            EAAI.StringLength = 500;
+            EAAI.isValidForMigration = true;
+            EAAI.isLookup = true;
+            EAAI.isPrimaryKey = false;
+            EAAI.isDMTField = true;
+            EAAI.FieldDerivedFrom = EAAI_Existing.fieldName;
+
+            return EAAI;
+        }
+
+
         public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTLeaderField(EntityAttribute_AdditionalInfo EAAI_Existing)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();

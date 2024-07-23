@@ -28,6 +28,7 @@ using System.Activities.Expressions;
 using System.Diagnostics.Metrics;
 using DynamicsMigrationTool;
 using ScintillaNET;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace DynamicsMigrationTool
 {
@@ -301,7 +302,18 @@ SELECT
                             }
                             else
                             {
-                                commentText = $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}";
+                                if (field.fieldName == field.FieldDerivedFrom + "_Source")
+                                {
+                                    commentText = $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}";
+                                }
+                                else if (field.fieldName == field.FieldDerivedFrom + "_LookupType")
+                                {
+                                    commentText = $"Use \"Guid\", \"StagingLookup\" or \"DynamicsLookup\" only (without quotation marks). If {field.FieldDerivedFrom}_Source is populated then this needs to be populated, otherwise leave null. Use Guid where passing in a Guid you want to pass through to dynamics. Use StagingLookup if referencing a record in a staging table. Use Dynamics Lookup if referencing a record in Dynamics (and not in Staging). The staging/dynamics table to lookup to is fixed for single entity lookups, and defined by the EntityName field for polymorhphic lookups.";
+                                }
+                                else if (field.fieldName == field.FieldDerivedFrom + "_DynamicsLookupFields")
+                                {
+                                    commentText = $"Must be populated if {field.FieldDerivedFrom}_LookupType = DynamicsLookup. Comma delimited list of fields in {field.FieldDerivedFrom}_Source field to use to crossreference records in Dynamics. If you want to lookup to Dynamics on name and statecode, and example would be: {field.FieldDerivedFrom}_Source = src.name + case when src.isActive = 'Y' then '0' else '1' end  {field.FieldDerivedFrom}_DynamicsLookupFields = 'name,statecode'";
+                                }
                             }
                         }
 
@@ -437,14 +449,18 @@ SELECT
             {
                 command.CommandText = $@"
                 ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT PK_{entity.LogicalName}_{dateTimeNow} PRIMARY KEY CLUSTERED (Source_System_Id ASC, {entity.PrimaryIdAttribute}_Source ASC) ON [PRIMARY]
-                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagCreate_{dateTimeNow}]  DEFAULT (1) FOR [FlagCreate]
-                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagUpdate_{dateTimeNow}]  DEFAULT (0) FOR [FlagUpdate]
-                ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagDelete_{dateTimeNow}]  DEFAULT (0) FOR [FlagDelete]
-                CREATE INDEX IDX_Processing_Status ON dbo.{entity.LogicalName}(Processing_Status, FlagCreate, DynCreateId, FlagUpdate, DynUpdateId, FlagDelete, DynDeleteId);
-                CREATE INDEX IDX_CreateParameters ON dbo.{entity.LogicalName}(FlagCreate, DynCreateId);
-                CREATE INDEX IDX_UpdateParameters ON dbo.{entity.LogicalName}(FlagUpdate, DynUpdateId);
-                CREATE INDEX IDX_DeleteParameters ON dbo.{entity.LogicalName}(FlagDelete, DynDeleteId);
+                CREATE INDEX IDX_Processing_Status ON dbo.{entity.LogicalName}(Processing_Status, DynId);
         ";
+
+                //ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagCreate_{dateTimeNow}]  DEFAULT (1) FOR [FlagCreate]
+                //ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagUpdate_{dateTimeNow}]  DEFAULT (0) FOR [FlagUpdate]
+                //ALTER TABLE dbo.{entity.LogicalName} ADD CONSTRAINT [CN_{entity.LogicalName}_FlagDelete_{dateTimeNow}]  DEFAULT (0) FOR [FlagDelete]
+                //CREATE INDEX IDX_Processing_Status ON dbo.{entity.LogicalName}(Processing_Status, FlagCreate, DynCreateId, FlagUpdate, DynUpdateId, FlagDelete, DynDeleteId);
+                //CREATE INDEX IDX_CreateParameters ON dbo.{entity.LogicalName}(FlagCreate, DynCreateId);
+                //CREATE INDEX IDX_UpdateParameters ON dbo.{entity.LogicalName}(FlagUpdate, DynUpdateId);
+                //CREATE INDEX IDX_DeleteParameters ON dbo.{entity.LogicalName}(FlagDelete, DynDeleteId);
+
+
                 command.ExecuteNonQuery();
             }
         }
@@ -461,7 +477,7 @@ SELECT
                     Follower.Leader_System_Id,
                     Follower.{entity.PrimaryIdAttribute}_Leader,
                     Follower.Processing_Status,
-                    COALESCE(Leader.DynCreateId, Follower.DynCreateId) AS DynCreateId
+                    COALESCE(Leader.DynId, Follower.DynId) AS DynId
                 FROM dbo.{entity.LogicalName} AS Follower
                 LEFT JOIN dbo.{entity.LogicalName} AS Leader
                         ON Follower.Leader_System_Id = Leader.Source_System_Id AND Follower.{entity.PrimaryIdAttribute}_Leader = Leader.{entity.PrimaryIdAttribute}_Source;

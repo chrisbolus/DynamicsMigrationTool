@@ -25,6 +25,8 @@ namespace DynamicsMigrationTool
         public IOrganizationService Service { get; set; }
         public Settings mySettings { get; set; }
         XNamespace DTS = "www.microsoft.com/SqlServer/Dts";
+        string SourceDBId = null;
+        string StagingDBId = null;
 
         //this is the constructor
         public SourceToStagingGeneration(IOrganizationService service, Settings MySettings)
@@ -48,35 +50,78 @@ namespace DynamicsMigrationTool
             var package = new XDocument();
             var packageLocation = mySettings.SourceToStagingLocationString;
 
-            GenerateXML_SSISPackageBase(package, entityName);
-            GenerateXML_Executable_SQLTask_S2STruncateStagingTable(package, entityName);
-            GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
-            GenerateXML_Executable_DataFlow_SimpleS2S(package, entityName);
-            GenerateXML_Executable_SQLTask_S2SReAddPK(package, entityName);
-            GenerateXML_Executable_SQLTask_S2SReAddIndexes(package, entityName);
+            var project = GetS2SProject();
 
-            //Constraints link Executables
-            int ConstraintNumber = 1;
-            GenerateXML_Executable_SQLTask_AddConstraint(package, "Truncate Staging Table", "Drop Indexes and PK", ConstraintNumber++);
-            GenerateXML_Executable_SQLTask_AddConstraint(package, "Drop Indexes and PK", "Data Flow Task_1", ConstraintNumber++);
-            GenerateXML_Executable_SQLTask_AddConstraint(package, "Data Flow Task_1", "ReAdd PK", ConstraintNumber++);
-            GenerateXML_Executable_SQLTask_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
+            if (project != null)
+            {
+                SourceDBId = GetConmgrId(packageLocation, "SourceDB");
+                StagingDBId = GetConmgrId(packageLocation, "StagingDB");
+
+                if (SourceDBId != null && StagingDBId != null)
+                {
+                    GenerateXML_SSISPackageBase(package, entityName);
+                    GenerateXML_Executable_SQLTask_S2STruncateStagingTable(package, entityName);
+                    GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
+                    GenerateXML_Executable_DataFlow_SimpleS2S(package, entityName);
+                    GenerateXML_Executable_SQLTask_S2SReAddPK(package, entityName);
+                    GenerateXML_Executable_SQLTask_S2SReAddIndexes(package, entityName);
+
+                    //Constraints link Executables
+                    int ConstraintNumber = 1;
+                    GenerateXML_Executable_SQLTask_AddConstraint(package, "Truncate Staging Table", "Drop Indexes and PK", ConstraintNumber++);
+                    GenerateXML_Executable_SQLTask_AddConstraint(package, "Drop Indexes and PK", "Data Flow Task_1", ConstraintNumber++);
+                    GenerateXML_Executable_SQLTask_AddConstraint(package, "Data Flow Task_1", "ReAdd PK", ConstraintNumber++);
+                    GenerateXML_Executable_SQLTask_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
+
+                    try
+                    {
+                        SavePackage(package, entityName, packageLocation);
+                        MessageBox.Show("SSIS package created successfully.");
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("SSIS package failed to save. Check Source To Staging SSIS Project Location is correct.");
+                    }
+
+                    addSSISPackageToProject(entityName);
+                }
+            }
+
+            
+        }
+
+        private string GetConmgrId(string packageLocation, string ConnectionName)
+        {
+            var packagePath = packageLocation + $"\\{ConnectionName}.conmgr";
+            var conmgr = new XDocument();
+            string conmgrid = null;
+
+            Boolean goodPath = false;
 
             try
             {
-                SavePackage(package, entityName, packageLocation);
-                MessageBox.Show("SSIS package created successfully.");
+                conmgr = XDocument.Load(packagePath);
+                goodPath = true;
             }
             catch (Exception e)
             {
-                MessageBox.Show("SSIS package failed to save. Check Source To Staging SSIS Package Location is correct.");
+                MessageBox.Show($"Unable to find a file called {ConnectionName}.conmgr at the Source To Staging SSIS Project Location."); 
             }
 
-            addSSISPackageToProject(entityName);
+            if(goodPath)
+            {
+                try
+                {
+                    conmgrid = conmgr.Element(DTS + "ConnectionManager").Attribute(DTS + "DTSID").Value;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show($"{ConnectionName}.conmgr file layout is incorrect, unable to find the DTS:DTSID.");
+                }
+            }
+            
+            return conmgrid;            
         }
-
-
-
 
         private void GenerateXML_SSISPackageBase(XDocument package, string entityName)
         {
@@ -84,12 +129,11 @@ namespace DynamicsMigrationTool
                             new XAttribute(XNamespace.Xmlns + "DTS", DTS.ToString()),
                             new XAttribute(DTS + "ObjectName", entityName),
                             new XAttribute(DTS + "refId", "Package"),
-                            new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                             new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
                             new XAttribute(DTS + "CreationName", "Microsoft.Package"),
-                            new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
                             new XAttribute(DTS + "VersionBuild", "1"),
-                            new XAttribute(DTS + "VersionGUID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                            new XAttribute(DTS + "VersionGUID", GenerateNewXMLGuid()),
                             new XElement(DTS + "Property", "8",
                                 new XAttribute(DTS + "Name", "PackageFormatVersion")
                             ),
@@ -101,7 +145,7 @@ namespace DynamicsMigrationTool
 
         private void GenerateXML_Executable_SQLTask_S2STruncateStagingTable(XDocument package, string entityName)
         {
-            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLConnection = StagingDBId;
             var SQLQuery = $"truncate table dbo.{entityName}";
 
             GenerateXML_Executable_SQLTask_AddTask(package, "Truncate Staging Table", SQLConnection, SQLQuery);
@@ -109,7 +153,7 @@ namespace DynamicsMigrationTool
 
         private void GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(XDocument package, string entityName)
         {
-            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLConnection = StagingDBId;
             var SQLQuery = $"declare @idxStr nvarchar(2000);\nSELECT @idxStr = (\nselect 'drop index '+o.name+'.'+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key <> 1\nand i.index_id > 0\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @idxStr;\n\ndeclare @pKStr nvarchar(500);\nSELECT @pKStr = (\nselect 'alter table '+o.name+' drop constraint '+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key = 1\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @pKStr;\n";
 
             GenerateXML_Executable_SQLTask_AddTask(package, "Drop Indexes and PK", SQLConnection, SQLQuery);
@@ -119,18 +163,20 @@ namespace DynamicsMigrationTool
             var PrimaryIdAttribute = Service.GetEntityMetadata(entityName).PrimaryIdAttribute;
             var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
+            var SQLConnection = StagingDBId;
             var SQLQuery = $"ALTER TABLE [dbo].[{entityName}] ADD CONSTRAINT [PK_{entityName}_{dateTimeNow}] PRIMARY KEY CLUSTERED \n(\n\t[Source_System_Id] ASC,\n\t[{PrimaryIdAttribute}_Source] ASC\n) ON [PRIMARY]\nGO";
 
             GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd PK", SQLConnection, SQLQuery);
         }
         private void GenerateXML_Executable_SQLTask_S2SReAddIndexes(XDocument package, string entityName)
         {
-            var SQLConnection = "{00000000-0000-0000-0000-000000000000}";
-            var SQLQuery = $"CREATE NONCLUSTERED INDEX [IDX_CreateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                $"CREATE NONCLUSTERED INDEX [IDX_UpdateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                $"CREATE NONCLUSTERED INDEX [IDX_DeleteParameters] ON [dbo].[{entityName}]\n(\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                $"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC,\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC,\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO";
+            var SQLConnection = StagingDBId;
+            var SQLQuery =
+                                //$"CREATE NONCLUSTERED INDEX [IDX_CreateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_UpdateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_DeleteParameters] ON [dbo].[{entityName}]\n(\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC,\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC,\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO";
+                                $"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[DynId] ASC\n) ON [PRIMARY]\nGO";
 
             GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd Indexes", SQLConnection, SQLQuery);
         }
@@ -146,7 +192,7 @@ namespace DynamicsMigrationTool
                 new XAttribute(DTS + "ObjectName", executableName),
                 new XAttribute(DTS + "CreationName", "Microsoft.ExecuteSQLTask"),
                 new XAttribute(DTS + "Description", "Execute SQL Task"),
-                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                 new XAttribute(DTS + "ExecutableType", "Microsoft.ExecuteSQLTask"),
                 new XAttribute(DTS + "LocaleID", "-1"),
                 new XAttribute(DTS + "ThreadHint", "0"),
@@ -171,7 +217,7 @@ namespace DynamicsMigrationTool
                 new XAttribute(DTS + "From", $"Package\\{executableName_from}"),
                 new XAttribute(DTS + "To",   $"Package\\{executableName_to}"),
                 new XAttribute(DTS + "refId", $"Package.PrecedenceConstraints[Constraint_{ConstraintNumber}]"),
-                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                 new XAttribute(DTS + "LogicalAnd", "True"),
                 new XAttribute(DTS + "ObjectName", "Constraint"),
                 new XAttribute(DTS + "CreationName", string.Empty)
@@ -187,7 +233,7 @@ namespace DynamicsMigrationTool
             var executables = package.Element(DTS + "Executable").Element(DTS + "Executables");
 
             var executable = new XElement(DTS + "Executable",
-                                new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                                new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                                 new XAttribute(DTS + "refId", "Package\\Data Flow Task_" + dataFlowNumber),
                                 new XAttribute(DTS + "CreationName", "Microsoft.Pipeline"),
                                 new XAttribute(DTS + "ExecutableType", "Microsoft.Pipeline"),
@@ -481,7 +527,7 @@ namespace DynamicsMigrationTool
             {
                 connections.Add(new XElement("connection",
                                         new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Connections[OleDbConnection]"),
-                                        new XAttribute("connectionManagerID", "{00000000-0000-0000-0000-000000000000}:external"),
+                                        new XAttribute("connectionManagerID", StagingDBId + ":external"),
                                         new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.Staging_DMT]"),
                                         new XAttribute("name", "OleDbConnection")));
             }
@@ -489,7 +535,7 @@ namespace DynamicsMigrationTool
             {
                 connections.Add(new XElement("connection",
                                         new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Connections[OleDbConnection]"),
-                                        new XAttribute("connectionManagerID", "{11111111-1111-1111-1111-111111111111}:external"),
+                                        new XAttribute("connectionManagerID", SourceDBId + ":external"),
                                         new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.AdventureWorks2022]"),
                                         new XAttribute("name", "OleDbConnection")));
             }
@@ -629,7 +675,7 @@ namespace DynamicsMigrationTool
             var precedenceConstraints = package.Element(DTS + "Executable").Element(DTS + "PrecedenceConstraints");
 
             precedenceConstraints.Add(new XElement(DTS + "PrecedenceConstraint",
-                                        new XAttribute(DTS + "DTSID", $"[{Guid.NewGuid().ToString().ToUpper()}]"),
+                                        new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                                         new XAttribute(DTS + "From", "Package\\" + fromExecutable_Name),
                                         new XAttribute(DTS + "To", "Package\\" + toExecutable_Name),
                                         new XAttribute(DTS + "LogicalAnd", "True"),
@@ -664,75 +710,82 @@ namespace DynamicsMigrationTool
             var project = GetS2SProject();
             var SSISPackageName = entityName.ToLower() + ".dtsx";
 
-            if (project != null)
+            XNamespace SSIS = "www.microsoft.com/SqlServer/SSIS";
+
+            var SSISProject = project.Element("Project").Element("DeploymentModelSpecificContent").Element("Manifest").Element(SSIS + "Project");
+            var SSISPackages = SSISProject.Element(SSIS + "Packages");
+            var existingPackage = SSISPackages.Elements(SSIS + "Package").Where(x => x.Attribute(SSIS + "Name").Value.ToLower() == SSISPackageName).FirstOrDefault();
+
+            if (existingPackage == null)
             {
-                XNamespace SSIS = "www.microsoft.com/SqlServer/SSIS";
+                SSISPackages.Add(new XElement(SSIS + "Package",
+                                    new XAttribute(SSIS + "Name", SSISPackageName),
+                                    new XAttribute(SSIS + "EntryPoint", "1")));
 
-                var SSISProject = project.Element("Project").Element("DeploymentModelSpecificContent").Element("Manifest").Element(SSIS + "Project");
-                var SSISPackages = SSISProject.Element(SSIS + "Packages");
-                var existingPackage = SSISPackages.Elements(SSIS + "Package").Where(x => x.Attribute(SSIS + "Name").Value.ToLower() == SSISPackageName).FirstOrDefault();
+                var SSISPackageInfo = SSISProject.Element(SSIS + "DeploymentInfo").Element(SSIS + "PackageInfo");
 
-                if (existingPackage == null)
+
+                SSISPackageInfo.Add(new XElement(SSIS + "PackageMetaData",
+                    new XAttribute(SSIS + "Name", SSISPackageName),
+                    new XElement(SSIS + "Properties",
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "ID"), GenerateNewXMLGuid()),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "Name"), entityName),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "VersionMajor"), "1"),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "VersionMinor"), "0"),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "VersionBuild"), "1"),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "VersionComments"), string.Empty),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "VersionGUID"), GenerateNewXMLGuid()),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "PackageFormatVersion"), "8"),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "Description"), string.Empty),
+                        new XElement(SSIS + "Property",
+                            new XAttribute(SSIS + "Name", "ProtectionLevel"), "1")
+                    ),
+                    new XElement(SSIS + "Parameters")
+                ));
+
+                try
                 {
-                    SSISPackages.Add(new XElement(SSIS + "Package",
-                                        new XAttribute(SSIS + "Name", SSISPackageName),
-                                        new XAttribute(SSIS + "EntryPoint", "1")));
-
-                    var SSISPackageInfo = SSISProject.Element(SSIS + "DeploymentInfo").Element(SSIS + "PackageInfo");
-
-
-                    SSISPackageInfo.Add(new XElement(SSIS + "PackageMetaData",
-                        new XAttribute(SSIS + "Name", SSISPackageName),
-                        new XElement(SSIS + "Properties",
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "ID"), $"[{Guid.NewGuid().ToString().ToUpper()}]"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "Name"), entityName),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "VersionMajor"), "1"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "VersionMinor"), "0"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "VersionBuild"), "1"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "VersionComments"), string.Empty),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "VersionGUID"), $"[{Guid.NewGuid().ToString().ToUpper()}]"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "PackageFormatVersion"), "8"),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "Description"), string.Empty),
-                            new XElement(SSIS + "Property",
-                                new XAttribute(SSIS + "Name", "ProtectionLevel"), "1")
-                        ),
-                        new XElement(SSIS + "Parameters")
-                    ));
-
-                    try
-                    {
-                        project.Save(mySettings.SourceToStagingLocationString + "\\SourceToStaging.dtproj");
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Unable to update \"SourceToStaging.dtproj\" to add the SSIS package to it.");
-                    }
-
+                    project.Save(mySettings.SourceToStagingLocationString + "\\SourceToStaging.dtproj");
                 }
+                catch (Exception e)
+                {
+                    MessageBox.Show("Unable to update \"SourceToStaging.dtproj\" to add the SSIS package to it.");
+                }
+
             }
-            else
-            {
-                MessageBox.Show("Unable to find a file called \"SourceToStaging.dtproj\" at the Source To Staging SSIS Package Location. Cannot update project to add new SSIS package.");
-            }
+            
         }
 
 
         public XDocument GetS2SProject()
         {
             var path = mySettings.SourceToStagingLocationString + "\\SourceToStaging.dtproj";
+            XDocument package = null;
 
-            var package = XDocument.Load(path);
+            try
+            {
+                package = XDocument.Load(path);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Unable to find a file called \"SourceToStaging.dtproj\" at the Source To Staging SSIS Project Location. Please create a VS Integrations Services project Called \"SourceToStaging\" with OLEDB connections called \"SourceDB\" and \"StagingDB\".");
+            }
 
             return package;
+        }
+
+        public string GenerateNewXMLGuid()
+        {
+            return "{" + Guid.NewGuid().ToString().ToUpper() + "}";
         }
 
     }
