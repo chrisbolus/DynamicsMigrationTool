@@ -1,6 +1,7 @@
 ﻿using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Extensions;
+using Microsoft.Xrm.Sdk.Metadata;
 using ScintillaNET;
 using System;
 using System.Activities.Statements;
@@ -10,7 +11,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Shapes;
 using System.Xml.Linq;
 using static Azure.Core.HttpHeader;
@@ -73,17 +74,24 @@ namespace DynamicsMigrationTool
                     GenerateXML_Executable_SQLTask_AddConstraint(package, "Data Flow Task_1", "ReAdd PK", ConstraintNumber++);
                     GenerateXML_Executable_SQLTask_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
 
-                    try
-                    {
-                        SavePackage(package, entityName, packageLocation);
-                        MessageBox.Show("SSIS package created successfully.");
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("SSIS package failed to save. Check Source To Staging SSIS Project Location is correct.");
-                    }
+                    var result = MessageBox.Show($"This will create {entityName}.dtsx at {packageLocation}\\\n\nWARNING - If that file exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
+                                     MessageBoxButtons.YesNo,
+                                     MessageBoxIcon.Question);
 
-                    addSSISPackageToProject(entityName);
+                    if (result == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            SavePackage(package, entityName, packageLocation);
+                            MessageBox.Show("SSIS package created successfully.");
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox.Show("SSIS package failed to save. Check Source To Staging SSIS Project Location is correct.");
+                        }
+
+                        addSSISPackageToProject(entityName);
+                    }
                 }
             }
 
