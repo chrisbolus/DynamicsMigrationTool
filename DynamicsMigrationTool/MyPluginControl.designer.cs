@@ -51,7 +51,6 @@
             this.CreateStgTbl_Btn.TabIndex = 30;
             this.CreateStgTbl_Btn.Text = "Create Staging Table";
             this.CreateStgTbl_Btn.UseVisualStyleBackColor = true;
-            this.CreateStgTbl_Btn.UseWaitCursor = true;
             this.CreateStgTbl_Btn.Click += new System.EventHandler(this.CreateStgTbl_Btn_Click);
             // 
             // EntityCmb
@@ -61,7 +60,6 @@
             this.EntityCmb.Name = "EntityCmb";
             this.EntityCmb.Size = new System.Drawing.Size(265, 24);
             this.EntityCmb.TabIndex = 10;
-            this.EntityCmb.UseWaitCursor = true;
             // 
             // stagingDBConnection_txtb
             // 
@@ -69,7 +67,6 @@
             this.stagingDBConnection_txtb.Name = "stagingDBConnection_txtb";
             this.stagingDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
             this.stagingDBConnection_txtb.TabIndex = 60;
-            this.stagingDBConnection_txtb.UseWaitCursor = true;
             this.stagingDBConnection_txtb.TextChanged += new System.EventHandler(this.stagingDBConnection_txtb_TextChanged);
             // 
             // EntityName_Lbl
@@ -80,7 +77,6 @@
             this.EntityName_Lbl.Size = new System.Drawing.Size(39, 16);
             this.EntityName_Lbl.TabIndex = 11;
             this.EntityName_Lbl.Text = "Entity";
-            this.EntityName_Lbl.UseWaitCursor = true;
             // 
             // StagingDatabase_Lbl
             // 
@@ -90,7 +86,6 @@
             this.StagingDatabase_Lbl.Size = new System.Drawing.Size(223, 16);
             this.StagingDatabase_Lbl.TabIndex = 9;
             this.StagingDatabase_Lbl.Text = "Staging Database Connection String";
-            this.StagingDatabase_Lbl.UseWaitCursor = true;
             // 
             // About_btn
             // 
@@ -100,7 +95,6 @@
             this.About_btn.TabIndex = 80;
             this.About_btn.Text = "About";
             this.About_btn.UseVisualStyleBackColor = true;
-            this.About_btn.UseWaitCursor = true;
             this.About_btn.Click += new System.EventHandler(this.About_btn_Click);
             // 
             // CreateSrcVwTmpl_Btn
@@ -111,7 +105,6 @@
             this.CreateSrcVwTmpl_Btn.TabIndex = 20;
             this.CreateSrcVwTmpl_Btn.Text = "Create Source View Template";
             this.CreateSrcVwTmpl_Btn.UseVisualStyleBackColor = true;
-            this.CreateSrcVwTmpl_Btn.UseWaitCursor = true;
             this.CreateSrcVwTmpl_Btn.Click += new System.EventHandler(this.CreateSrcVwTmpl_Btn_Click);
             // 
             // sourceDBConnection_txtb
@@ -120,7 +113,6 @@
             this.sourceDBConnection_txtb.Name = "sourceDBConnection_txtb";
             this.sourceDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
             this.sourceDBConnection_txtb.TabIndex = 50;
-            this.sourceDBConnection_txtb.UseWaitCursor = true;
             this.sourceDBConnection_txtb.TextChanged += new System.EventHandler(this.sourceDBConnection_txtb_TextChanged);
             // 
             // SourceDatabase_Lbl
@@ -131,7 +123,6 @@
             this.SourceDatabase_Lbl.Size = new System.Drawing.Size(220, 16);
             this.SourceDatabase_Lbl.TabIndex = 13;
             this.SourceDatabase_Lbl.Text = "Source Database Connection String";
-            this.SourceDatabase_Lbl.UseWaitCursor = true;
             // 
             // test_btn
             // 
@@ -141,7 +132,6 @@
             this.test_btn.TabIndex = 1000;
             this.test_btn.Text = "test";
             this.test_btn.UseVisualStyleBackColor = true;
-            this.test_btn.UseWaitCursor = true;
             this.test_btn.Click += new System.EventHandler(this.test_btn_Click);
             // 
             // sourceToStagingLocation_txtb
@@ -150,7 +140,6 @@
             this.sourceToStagingLocation_txtb.Name = "sourceToStagingLocation_txtb";
             this.sourceToStagingLocation_txtb.Size = new System.Drawing.Size(683, 22);
             this.sourceToStagingLocation_txtb.TabIndex = 70;
-            this.sourceToStagingLocation_txtb.UseWaitCursor = true;
             this.sourceToStagingLocation_txtb.TextChanged += new System.EventHandler(this.sourceToStagingLocation_txtb_TextChanged);
             // 
             // sourceToStagingLocation_Lbl
@@ -161,7 +150,6 @@
             this.sourceToStagingLocation_Lbl.Size = new System.Drawing.Size(251, 16);
             this.sourceToStagingLocation_Lbl.TabIndex = 15;
             this.sourceToStagingLocation_Lbl.Text = "Source To Staging SSIS Project Location";
-            this.sourceToStagingLocation_Lbl.UseWaitCursor = true;
             // 
             // CreateS2SPackage_Btn
             // 
@@ -171,7 +159,6 @@
             this.CreateS2SPackage_Btn.TabIndex = 40;
             this.CreateS2SPackage_Btn.Text = "Create Source To Staging Package";
             this.CreateS2SPackage_Btn.UseVisualStyleBackColor = true;
-            this.CreateS2SPackage_Btn.UseWaitCursor = true;
             this.CreateS2SPackage_Btn.Click += new System.EventHandler(this.CreateS2SPackage_Btn_Click);
             // 
             // MyPluginControl
@@ -194,7 +181,6 @@
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "MyPluginControl";
             this.Size = new System.Drawing.Size(746, 446);
-            this.UseWaitCursor = true;
             this.Load += new System.EventHandler(this.MyPluginControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

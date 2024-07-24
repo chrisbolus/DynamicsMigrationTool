@@ -138,6 +138,8 @@ namespace DynamicsMigrationTool
 
         private void CreateStgTbl_Btn_Click(object sender, EventArgs e)
         {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             ExecuteMethod(TestConnection);
 
             if (IsEntitySelected())
@@ -167,11 +169,15 @@ namespace DynamicsMigrationTool
                     MessageBox.Show("Staging Table Created Successfully");
                 }
             }
+
+            Cursor = System.Windows.Forms.Cursors.Arrow;
         }
 
 
         private void CreateSrcVwTmpl_Btn_Click(object sender, EventArgs e)
         {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             ExecuteMethod(TestConnection);
 
             if (IsEntitySelected())
@@ -201,6 +207,9 @@ namespace DynamicsMigrationTool
                     MessageBox.Show("Source View Template Created Successfully");
                 }
             }
+
+
+            Cursor = System.Windows.Forms.Cursors.Arrow;
         }
 
         private void TestConnection()
@@ -342,65 +351,8 @@ SELECT
 
                 command.ExecuteNonQuery();
             }
-
         }
 
-        public void CreateTemplateSourceView_Old(SqlConnection connection, EntityMetadata entity)
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandTimeout = 0;
-                command.CommandText = $@"
-CREATE OR ALTER VIEW [dmt].{entity.LogicalName}_Template AS 
---RENAME THIS VIEW! Remove the ""_Template\"" suffix, or replace it with your own suffix.
---THIS IS A BASE VIEW OF ALL FIELDS FOR THE {entity.LogicalName.ToUpper()} ENTITY WITH ALL THE CASTS TO ENSURE ALL THE DATA ENDS UP IN THE CORRECT FORMAT. ADD A FROM STATEMENT TO PULL DATA FROM THE TABLE YOU WANT TO USE, AND REPLACE THE NULLS IN THE CASTS WITH THE FIELDS FROM YOUR SOURCE TABLE .
-
-SELECT
-";
-
-                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(1 AS INT) AS Source_System_Id",
-                                                                        $"DMT Field, used to handle multiple source systems. Default value = 1. Change if using a second (etc.) source system.", true);
-                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(1 AS INT) AS Processing_Status",
-                                                                        $"DMT Field, used to handle relationship mapping. Default value = 1. Set to 0 for records that shouldn't be loaded.");
-
-
-                foreach (var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
-                {
-                    EntityAttribute_AdditionalInfo entAAI = CRMHelper.Get_EntityAttribute_AdditionalInfo(Service, attribute);
-
-
-                    if (entAAI.isValidForMigration)
-                    {
-                        var targetListMessage = entAAI.DynEntityLookupTargets_List == null ? "" : $" Target entity(s) = {entAAI.DynEntityLookupTargets_List}.";
-
-                        command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS {entAAI.DBDataType}) AS {attribute.LogicalName}",
-                                                                                $"Dynamics Attribute Type = {entAAI.DynDataType_Readable}.{targetListMessage}");
-                        if (entAAI.isLookup)
-                        {
-                            if (entAAI.isPrimaryKey)
-                            {
-                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
-                                                                                        $"DMT Field, used to handle the id of the record from the source system. Staging table requires this to be populated and unique when combined with Source_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Leader",
-                                                                                        $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with Leader_System_Id.");
-                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS INT) AS Leader_System_Id",
-                                                                                        $"DMT Field, used to handle relationship mapping to another {entity.LogicalName} record. For Staging view dbo.{entity.LogicalName}_RelationshipMap to work, this field must be used in conjuction with {attribute.LogicalName}_Leader.");
-                            }
-                            else
-                            {
-                                command.CommandText += TemplateSourceView_HandleCommentSpacing($"CAST(NULL AS NVARCHAR(255)) AS {attribute.LogicalName}_Source",
-                                                                                        $"DMT Field, used to handle the source system ids of other entities.{targetListMessage}");
-                            }
-                        }
-                    }
-                }
-
-                command.CommandText += "\n--FROM ";
-
-                command.ExecuteNonQuery();
-            }
-
-        }
 
         public string TemplateSourceView_HandleCommentSpacing(string queryLine, string comment, bool isFirstColumn = false)
         {
@@ -554,6 +506,8 @@ SELECT
 
         private void CreateS2SPackage_Btn_Click(object sender, EventArgs e)
         {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             ExecuteMethod(TestConnection);
 
             if (IsEntitySelected())
@@ -563,6 +517,7 @@ SELECT
                 sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
             }
 
+            Cursor = System.Windows.Forms.Cursors.Arrow;
         }
     }
 }
