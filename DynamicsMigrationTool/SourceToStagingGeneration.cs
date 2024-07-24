@@ -785,7 +785,7 @@ namespace DynamicsMigrationTool
             }
             catch (Exception e)
             {
-                MessageBox.Show("Unable to find a file called \"SourceToStaging.dtproj\" at the Source To Staging SSIS Project Location. Please create a VS Integrations Services project Called \"SourceToStaging\" with OLEDB connections called \"SourceDB\" and \"StagingDB\".");
+                MessageBox.Show("Unable to find a file called \"SourceToStaging.dtproj\" at the Source To Staging SSIS Project Location. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\SourceToStaging\n\n For more information please see the About button.");
             }
 
             return package;

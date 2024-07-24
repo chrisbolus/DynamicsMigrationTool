@@ -132,6 +132,7 @@
             this.test_btn.TabIndex = 1000;
             this.test_btn.Text = "test";
             this.test_btn.UseVisualStyleBackColor = true;
+            this.test_btn.Visible = false;
             this.test_btn.Click += new System.EventHandler(this.test_btn_Click);
             // 
             // sourceToStagingLocation_txtb

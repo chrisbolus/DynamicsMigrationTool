@@ -556,24 +556,39 @@ SELECT
 
         private void About_btn_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("This tool is designed to aid migration into D365 using a Dynamics connection and a local MSSQL database.\n\n" +
+            MessageBox.Show(
+                "This tool is designed to aid migration into D365 using a Dynamics connection and a local MSSQL databases. The tool uses the Dynamics Entity metadata in order to create various components which can be used in conjuction to load data into Dynamics.\n\n\n" +
 
-                            "Creating Staging Tables\n" +
-                            "This will create a staging table which is based of the metadata of the selected Dynamics entity. A mapping function enables the Dynamics field types to be mapped to equivalent SQL data types. Each field which contains a guid will have an additional \"_source\" column in the staging database. Additional field are also created to aid with migration.\n\n" +
+                "CREATING SOURCE VIEW TEMPLATES\n" +
+                "This will create a source view which is based of the metadata of the selected Dynamics entity. The concept is that the view Template is a starting point, and maps the data to the correct type to work with the other components of this tool. The view can be expanded by adding a Table to call data form, and then by replacing \"NULL\"s in the select with columns from the table. Each line contains a description of the column, either giving the equivalent datatype in dynamics, or if it's a field added to aid with migration, then a description as to how it's used.\n\n" +
 
-                            "Steps:\n" +
-                            "1. Populate the \"Staging Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DMT;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
-                            "2. Select an entity from the \"Entity\" dropdown.\n" +
-                            "3. Click \"Create Staging Table\"\n\n\n" +
+                "Steps:\n" +
+                "1. Populate the \"Source Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Adventureworks;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
+                "2. Select an entity from the \"Entity\" dropdown.\n" +
+                "3. Click \"Create Source View Templates\"\n\n\n" +
 
+                "CREATING STAGING TEMPLATES\n" +
+                "This will create a staging table which is based of the metadata of the selected Dynamics entity. A mapping function enables the Dynamics field types to be mapped to equivalent SQL data types. Each field which contains a guid will have an additional \"_source\" column in the staging database. Additional field are also created to aid with migration.\n\n" +
 
-                            "Creating Source View Templates\n" +
-                            "This will create a source view which is based of the metadata of the selected Dynamics entity. The concept is that the view Template is a starting point, and maps the data to the correct type to work with the other components of this tool. The view can be expanded by adding a Table to call data form, and then by replacing \"NULL\"s in the select with columns from the table. Each line contains a description of the column, either giving the equivalent datatype in dynamics, or if it's a field added to aid with migration, then a description as to how it's used.\n\n" +
+                "Steps:\n" +
+                "1. Populate the \"Staging Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DMT;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
+                "2. Select an entity from the \"Entity\" dropdown.\n" +
+                "3. Click \"Create Staging Table\"\n\n\n" +
 
-                            "Steps:\n" +
-                            "1. Populate the \"Source Database Connection String\" with a link to a local MSSQL database, e.g.: Data Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Adventureworks;Integrated Security=True;Persist Security Info=True;MultipleActiveResultSets=True\n" +
-                            "2. Select an entity from the \"Entity\" dropdown.\n" +
-                            "3. Click \"Create Source View Templates\"");
+                "CREATING SOURCE TO STAGING PACKAGES\n" +
+                "This will create an SSIS package which is based of the metadata of the selected Dynamics entity. This process just creates the package, it doesn't run it, that will need to be done manually in Visual Studio (or SSRS). This package's source will be the DMT.[SELECTED ENTITY] view in the Source Database (note the _Template view that is created by \"Create Source View Templates\" will need to be renamed to remove the _Template). The package's target will be the dbo.[SELECTED ENTITY] table in the Staging Database. As well as a data flow to pass the data from Source to Staging, the package will also contain a SQL tasks to truncate the contents of the existing staging table, and to remove and then re-add indexes to improve performance.)\n\n" +
+
+                "Pre-requisites: Visual Studio with the SQL Server Integration Services Projects extension, in order to create the following: A Visual Studio Integration Services project named \"SourceToStaging\", with OLEDB connections to your Source and Staging databases named \"SourceDB\" and \"StagingDB\" respectively.\n\n" +
+
+                "Steps:\n" +
+                "1. Populate the \"Source To Staging SSIS Project Location\" with the filepath to the location of your SourceToStaging SSIS project folder, e.g.: C:\\Users\\Chris\\DMSolution\\SourceToStaging\n" +
+                "2. Select an entity from the \"Entity\" dropdown.\n" +
+                "3. Click \"Create Source To Staging Package\"\n\n\n" +
+
+                "CREATING STAGING TO CRM PACKAGES\n" +
+                "[Functionality still under development. This will generate SSIS packages which use the KingswaySoft adaptor in order to load data from the Staging Database into Dynamics.]"
+            );
+
         }
 
         public void test_btn_Click(object sender, EventArgs e)
