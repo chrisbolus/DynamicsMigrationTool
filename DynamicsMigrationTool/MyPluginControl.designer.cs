@@ -63,6 +63,8 @@
             this.EntityCmb.Name = "EntityCmb";
             this.EntityCmb.Size = new System.Drawing.Size(265, 24);
             this.EntityCmb.TabIndex = 10;
+            this.EntityCmb.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
+            this.EntityCmb.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             // 
             // stagingDBConnection_txtb
             // 
