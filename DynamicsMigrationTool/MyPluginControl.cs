@@ -28,6 +28,7 @@ using System.Activities.Expressions;
 using System.Diagnostics.Metrics;
 using DynamicsMigrationTool;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DynamicsMigrationTool
 {
@@ -143,10 +144,6 @@ namespace DynamicsMigrationTool
 
             if (IsEntitySelected())
             {
-                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
-
-                var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
-
                 var stagingDBConnectionString = new SqlConnection();
 
                 Boolean isStagingDBConnectionValid = false;
@@ -163,6 +160,9 @@ namespace DynamicsMigrationTool
 
                 if (isStagingDBConnectionValid)
                 {
+                    var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                    var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
 
                     var result = MessageBox.Show($"This will create the [dbo].[{entityMetadata_noattr.LogicalName}] Table in the Staging Database.\n\nWARNING - If that table exists already, it will be DROPPED and recreated!\n\nAre you happy to proceed?", "Warning",
                                  MessageBoxButtons.YesNo,
@@ -189,9 +189,6 @@ namespace DynamicsMigrationTool
 
             if (IsEntitySelected())
             {
-                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
-
-                var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
 
                 var sourceDBConnectionString = new SqlConnection();
 
@@ -206,7 +203,6 @@ namespace DynamicsMigrationTool
                 {
                     MessageBox.Show($"Please review Source Database Connection String:\n{mySettings.SourceDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Source_DB;Integrated Security=True;");
                 }
-
 
                 Boolean doesDMTSchemaExist = false;
 
@@ -260,6 +256,9 @@ namespace DynamicsMigrationTool
 
                 if (doesDMTSchemaExist)
                 {
+                    var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                    var entityMetadata = Service.GetEntityMetadata(entityMetadata_noattr.LogicalName);
 
                     var result = MessageBox.Show($"This will create the [DMT].[{entityMetadata_noattr.LogicalName}_Template] View in the Source Database.\n\nWARNING - If that view exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
                                  MessageBoxButtons.YesNo,
@@ -289,26 +288,8 @@ namespace DynamicsMigrationTool
         {
             if (EntityCmb.SelectedItem == null)
             {
-                if (EntityCmb.Text == null)
-                {
-                    MessageBox.Show("Please select an entity from the dropdown.");
-                    return false;
-                }
-                else if (EntityCmb.Text != null)
-                {
-                    //var entities = GetEntities(Service);
-                    //foreach (var entity in entities)
-                    //{
-                    //    if (entity.LogicalName == EntityCmb.Text)
-                    //    {
-                    //        EntityCmb.SelectedItem = entity;
-                    //        return true;
-                    //    }
-                    //}
-
-                    MessageBox.Show("Please select an entity from the dropdown.");
-                    return false;
-                }
+                MessageBox.Show("Please select an entity from the dropdown.");
+                return false;
             }
             return true;
         }
@@ -599,13 +580,20 @@ SELECT
         {
             Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
-            ExecuteMethod(TestConnection);
-
-            if (IsEntitySelected())
+            if(mySettings.SourceToStagingLocationString.IsNullOrEmpty())
             {
-                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+                MessageBox.Show("Please populate Source To Staging SSIS Project Location");
+            }
+            else
+            {
+                ExecuteMethod(TestConnection);
 
-                sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
+                if (IsEntitySelected())
+                {
+                    var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                    sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
+                }
             }
 
             Cursor = System.Windows.Forms.Cursors.Arrow;

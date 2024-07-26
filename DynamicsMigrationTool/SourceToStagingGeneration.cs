@@ -131,6 +131,39 @@ namespace DynamicsMigrationTool
             return conmgrid;            
         }
 
+
+        public string GetOLEDBConmgrObjectName(string packageLocation, string ConnectionName)
+        {
+            var packagePath = packageLocation + $"\\{ConnectionName}.conmgr";
+            var conmgr = new XDocument();
+            string conmgrobjname = null;
+
+            Boolean goodPath = false;
+
+            try
+            {
+                conmgr = XDocument.Load(packagePath);
+                goodPath = true;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Unable to find a file called {ConnectionName}.conmgr at {packageLocation}");
+            }
+
+            if (goodPath)
+            {
+                try
+                {
+                    conmgrobjname = conmgr.Element(DTS + "ConnectionManager").Attribute(DTS + "ObjectName").Value;
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show($"{ConnectionName}.conmgr file layout is incorrect, unable to find the DTS:ObjectName.");
+                }
+            }
+
+            return conmgrobjname;
+        }
         private void GenerateXML_SSISPackageBase(XDocument package, string entityName)
         {
             package.Add(new XElement(DTS + "Executable",
@@ -536,7 +569,7 @@ namespace DynamicsMigrationTool
                 connections.Add(new XElement("connection",
                                         new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination.Connections[OleDbConnection]"),
                                         new XAttribute("connectionManagerID", StagingDBId + ":external"),
-                                        new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.Staging_DMT]"),
+                                        new XAttribute("connectionManagerRefId", $"Project.ConnectionManagers[{GetOLEDBConmgrObjectName(mySettings.SourceToStagingLocationString, "StagingDB")}]"),
                                         new XAttribute("name", "OleDbConnection")));
             }
             else if (component.Attribute("componentClassID").Value == "Microsoft.OLEDBSource")
@@ -544,7 +577,7 @@ namespace DynamicsMigrationTool
                 connections.Add(new XElement("connection",
                                         new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source.Connections[OleDbConnection]"),
                                         new XAttribute("connectionManagerID", SourceDBId + ":external"),
-                                        new XAttribute("connectionManagerRefId", "Project.ConnectionManagers[DESKTOP-C5HN73M_SQLEXPRESS.AdventureWorks2022]"),
+                                        new XAttribute("connectionManagerRefId", $"Project.ConnectionManagers[{GetOLEDBConmgrObjectName(mySettings.SourceToStagingLocationString, "SourceDB")}]"),
                                         new XAttribute("name", "OleDbConnection")));
             }
             else
