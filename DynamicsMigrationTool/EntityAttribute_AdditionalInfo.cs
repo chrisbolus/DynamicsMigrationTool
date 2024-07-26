@@ -1,13 +1,4 @@
-﻿using Microsoft.SqlServer.Management.Smo;
-using Microsoft.Xrm.Sdk.Metadata;
-using System;
-using System.Activities.Expressions;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DynamicsMigrationTool
+﻿namespace DynamicsMigrationTool
 {
     public class EntityAttribute_AdditionalInfo
     {

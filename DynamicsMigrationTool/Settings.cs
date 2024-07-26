@@ -18,5 +18,6 @@ namespace DynamicsMigrationTool
         public string StagingDBConnectionString { get; set; }
         public string SourceDBConnectionString { get; set; }
         public string SourceToStagingLocationString { get; set; }
+        public string StagingToCRMLocationString { get; set; }
     }
 }

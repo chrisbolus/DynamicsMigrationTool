@@ -40,12 +40,15 @@
             this.test_btn = new System.Windows.Forms.Button();
             this.sourceToStagingLocation_txtb = new System.Windows.Forms.TextBox();
             this.sourceToStagingLocation_Lbl = new System.Windows.Forms.Label();
-            this.CreateS2SPackage_Btn = new System.Windows.Forms.Button();
+            this.CreateSourceToStagingPackage_Btn = new System.Windows.Forms.Button();
+            this.stagingToCRMLocation_txtb = new System.Windows.Forms.TextBox();
+            this.stagingToCRMLocation_Lbl = new System.Windows.Forms.Label();
+            this.CreateStagingToCRMPackage_Btn = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
             // 
-            this.CreateStgTbl_Btn.Location = new System.Drawing.Point(41, 152);
+            this.CreateStgTbl_Btn.Location = new System.Drawing.Point(41, 150);
             this.CreateStgTbl_Btn.Name = "CreateStgTbl_Btn";
             this.CreateStgTbl_Btn.Size = new System.Drawing.Size(247, 32);
             this.CreateStgTbl_Btn.TabIndex = 30;
@@ -63,7 +66,7 @@
             // 
             // stagingDBConnection_txtb
             // 
-            this.stagingDBConnection_txtb.Location = new System.Drawing.Point(42, 332);
+            this.stagingDBConnection_txtb.Location = new System.Drawing.Point(42, 340);
             this.stagingDBConnection_txtb.Name = "stagingDBConnection_txtb";
             this.stagingDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
             this.stagingDBConnection_txtb.TabIndex = 60;
@@ -81,7 +84,7 @@
             // StagingDatabase_Lbl
             // 
             this.StagingDatabase_Lbl.AutoSize = true;
-            this.StagingDatabase_Lbl.Location = new System.Drawing.Point(42, 313);
+            this.StagingDatabase_Lbl.Location = new System.Drawing.Point(42, 321);
             this.StagingDatabase_Lbl.Name = "StagingDatabase_Lbl";
             this.StagingDatabase_Lbl.Size = new System.Drawing.Size(223, 16);
             this.StagingDatabase_Lbl.TabIndex = 9;
@@ -99,7 +102,7 @@
             // 
             // CreateSrcVwTmpl_Btn
             // 
-            this.CreateSrcVwTmpl_Btn.Location = new System.Drawing.Point(42, 114);
+            this.CreateSrcVwTmpl_Btn.Location = new System.Drawing.Point(42, 115);
             this.CreateSrcVwTmpl_Btn.Name = "CreateSrcVwTmpl_Btn";
             this.CreateSrcVwTmpl_Btn.Size = new System.Drawing.Size(246, 32);
             this.CreateSrcVwTmpl_Btn.TabIndex = 20;
@@ -109,7 +112,7 @@
             // 
             // sourceDBConnection_txtb
             // 
-            this.sourceDBConnection_txtb.Location = new System.Drawing.Point(42, 276);
+            this.sourceDBConnection_txtb.Location = new System.Drawing.Point(42, 290);
             this.sourceDBConnection_txtb.Name = "sourceDBConnection_txtb";
             this.sourceDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
             this.sourceDBConnection_txtb.TabIndex = 50;
@@ -118,7 +121,7 @@
             // SourceDatabase_Lbl
             // 
             this.SourceDatabase_Lbl.AutoSize = true;
-            this.SourceDatabase_Lbl.Location = new System.Drawing.Point(42, 257);
+            this.SourceDatabase_Lbl.Location = new System.Drawing.Point(42, 271);
             this.SourceDatabase_Lbl.Name = "SourceDatabase_Lbl";
             this.SourceDatabase_Lbl.Size = new System.Drawing.Size(220, 16);
             this.SourceDatabase_Lbl.TabIndex = 13;
@@ -137,7 +140,7 @@
             // 
             // sourceToStagingLocation_txtb
             // 
-            this.sourceToStagingLocation_txtb.Location = new System.Drawing.Point(41, 393);
+            this.sourceToStagingLocation_txtb.Location = new System.Drawing.Point(41, 390);
             this.sourceToStagingLocation_txtb.Name = "sourceToStagingLocation_txtb";
             this.sourceToStagingLocation_txtb.Size = new System.Drawing.Size(683, 22);
             this.sourceToStagingLocation_txtb.TabIndex = 70;
@@ -146,27 +149,56 @@
             // sourceToStagingLocation_Lbl
             // 
             this.sourceToStagingLocation_Lbl.AutoSize = true;
-            this.sourceToStagingLocation_Lbl.Location = new System.Drawing.Point(42, 374);
+            this.sourceToStagingLocation_Lbl.Location = new System.Drawing.Point(42, 371);
             this.sourceToStagingLocation_Lbl.Name = "sourceToStagingLocation_Lbl";
             this.sourceToStagingLocation_Lbl.Size = new System.Drawing.Size(251, 16);
             this.sourceToStagingLocation_Lbl.TabIndex = 15;
             this.sourceToStagingLocation_Lbl.Text = "Source To Staging SSIS Project Location";
             // 
-            // CreateS2SPackage_Btn
+            // CreateSourceToStagingPackage_Btn
             // 
-            this.CreateS2SPackage_Btn.Location = new System.Drawing.Point(41, 190);
-            this.CreateS2SPackage_Btn.Name = "CreateS2SPackage_Btn";
-            this.CreateS2SPackage_Btn.Size = new System.Drawing.Size(247, 32);
-            this.CreateS2SPackage_Btn.TabIndex = 40;
-            this.CreateS2SPackage_Btn.Text = "Create Source To Staging Package";
-            this.CreateS2SPackage_Btn.UseVisualStyleBackColor = true;
-            this.CreateS2SPackage_Btn.Click += new System.EventHandler(this.CreateS2SPackage_Btn_Click);
+            this.CreateSourceToStagingPackage_Btn.Location = new System.Drawing.Point(41, 185);
+            this.CreateSourceToStagingPackage_Btn.Name = "CreateSourceToStagingPackage_Btn";
+            this.CreateSourceToStagingPackage_Btn.Size = new System.Drawing.Size(247, 32);
+            this.CreateSourceToStagingPackage_Btn.TabIndex = 40;
+            this.CreateSourceToStagingPackage_Btn.Text = "Create Source To Staging Package";
+            this.CreateSourceToStagingPackage_Btn.UseVisualStyleBackColor = true;
+            this.CreateSourceToStagingPackage_Btn.Click += new System.EventHandler(this.CreateSourceToStagingPackage_Btn_Click);
+            // 
+            // stagingToCRMLocation_txtb
+            // 
+            this.stagingToCRMLocation_txtb.Location = new System.Drawing.Point(41, 440);
+            this.stagingToCRMLocation_txtb.Name = "stagingToCRMLocation_txtb";
+            this.stagingToCRMLocation_txtb.Size = new System.Drawing.Size(683, 22);
+            this.stagingToCRMLocation_txtb.TabIndex = 1001;
+            // 
+            // stagingToCRMLocation_Lbl
+            // 
+            this.stagingToCRMLocation_Lbl.AutoSize = true;
+            this.stagingToCRMLocation_Lbl.Location = new System.Drawing.Point(42, 421);
+            this.stagingToCRMLocation_Lbl.Name = "stagingToCRMLocation_Lbl";
+            this.stagingToCRMLocation_Lbl.Size = new System.Drawing.Size(238, 16);
+            this.stagingToCRMLocation_Lbl.TabIndex = 1002;
+            this.stagingToCRMLocation_Lbl.Text = "Staging To CRM SSIS Project Location";
+            // 
+            // CreateStagingToCRMPackage_Btn
+            // 
+            this.CreateStagingToCRMPackage_Btn.Location = new System.Drawing.Point(42, 220);
+            this.CreateStagingToCRMPackage_Btn.Name = "CreateStagingToCRMPackage_Btn";
+            this.CreateStagingToCRMPackage_Btn.Size = new System.Drawing.Size(247, 32);
+            this.CreateStagingToCRMPackage_Btn.TabIndex = 1003;
+            this.CreateStagingToCRMPackage_Btn.Text = "Create Staging To CRM Package";
+            this.CreateStagingToCRMPackage_Btn.UseVisualStyleBackColor = true;
+            this.CreateStagingToCRMPackage_Btn.Click += new System.EventHandler(this.CreateStagingToCRMPackage_Btn_Click);
             // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.CreateS2SPackage_Btn);
+            this.Controls.Add(this.CreateStagingToCRMPackage_Btn);
+            this.Controls.Add(this.stagingToCRMLocation_Lbl);
+            this.Controls.Add(this.stagingToCRMLocation_txtb);
+            this.Controls.Add(this.CreateSourceToStagingPackage_Btn);
             this.Controls.Add(this.sourceToStagingLocation_Lbl);
             this.Controls.Add(this.sourceToStagingLocation_txtb);
             this.Controls.Add(this.SourceDatabase_Lbl);
@@ -181,7 +213,7 @@
             this.Controls.Add(this.CreateStgTbl_Btn);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "MyPluginControl";
-            this.Size = new System.Drawing.Size(746, 446);
+            this.Size = new System.Drawing.Size(746, 499);
             this.Load += new System.EventHandler(this.MyPluginControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -201,6 +233,9 @@
         private System.Windows.Forms.Button test_btn;
         private System.Windows.Forms.TextBox sourceToStagingLocation_txtb;
         private System.Windows.Forms.Label sourceToStagingLocation_Lbl;
-        private System.Windows.Forms.Button CreateS2SPackage_Btn;
+        private System.Windows.Forms.Button CreateSourceToStagingPackage_Btn;
+        private System.Windows.Forms.TextBox stagingToCRMLocation_txtb;
+        private System.Windows.Forms.Label stagingToCRMLocation_Lbl;
+        private System.Windows.Forms.Button CreateStagingToCRMPackage_Btn;
     }
 }

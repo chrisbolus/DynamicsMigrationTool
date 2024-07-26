@@ -1,33 +1,16 @@
 ﻿using McTools.Xrm.Connection;
 using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Deployment;
 using Microsoft.Xrm.Sdk.Extensions;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
-using Microsoft.Xrm.Sdk.Metadata.Query;
-using Microsoft.Xrm.Sdk.Query;
-using Microsoft.Xrm.Tooling.Connector;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using System.Data.SqlClient;
 using System.Windows.Forms;
 using System.Xml;
 using XrmToolBox.Extensibility;
-using Microsoft.SqlServer.Management.Smo;
-using Microsoft.SqlServer.Management.Common;
-using View = Microsoft.SqlServer.Management.Smo.View;
-using Server = Microsoft.SqlServer.Management.Smo.Server;
-using System.Data.SqlClient;
-using System.Activities.Expressions;
-using System.Diagnostics.Metrics;
-using DynamicsMigrationTool;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace DynamicsMigrationTool
 {
@@ -35,6 +18,7 @@ namespace DynamicsMigrationTool
     {
         private Settings mySettings;
         private SourceToStagingGeneration sourceToStagingGeneration;
+        private StagingToCRMGeneration stagingToCRMGeneration;
 
         public MyPluginControl()
         {
@@ -61,11 +45,13 @@ namespace DynamicsMigrationTool
                 {
                     SetEntityList();
                     sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
+                    stagingToCRMGeneration = new StagingToCRMGeneration(Service, mySettings);
                 }
 
                 sourceDBConnection_txtb.Text = mySettings.SourceDBConnectionString;
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
                 sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
+                stagingToCRMLocation_txtb.Text = mySettings.StagingToCRMLocationString;
 
             }
         }
@@ -129,9 +115,10 @@ namespace DynamicsMigrationTool
             {
                 sourceToStagingGeneration.UpdateService(newService);
             }
-            else 
+            else
             {
                 sourceToStagingGeneration = new SourceToStagingGeneration(newService, mySettings);
+                stagingToCRMGeneration = new StagingToCRMGeneration(newService, mySettings);
             }
         }
 
@@ -545,13 +532,15 @@ SELECT
 
             if (sourceToStagingGeneration != null)
             if (sourceToStagingGeneration != null)
-            {
-                sourceToStagingGeneration.UpdateSettings(mySettings);
-            }
+                {
+                    sourceToStagingGeneration.UpdateSettings(mySettings);
+                    stagingToCRMGeneration.UpdateSettings(mySettings);
+                }
             else
-            {
-                sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
-            }
+                {
+                    sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
+                    stagingToCRMGeneration = new StagingToCRMGeneration(Service, mySettings);
+                }
         }
 
         private void About_btn_Click(object sender, EventArgs e)
@@ -595,7 +584,7 @@ SELECT
         {
         }
 
-        private void CreateS2SPackage_Btn_Click(object sender, EventArgs e)
+        private void CreateSourceToStagingPackage_Btn_Click(object sender, EventArgs e)
         {
             Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
@@ -606,6 +595,21 @@ SELECT
                 var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
 
                 sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
+            }
+
+            Cursor = System.Windows.Forms.Cursors.Arrow;
+        }
+        private void CreateStagingToCRMPackage_Btn_Click(object sender, EventArgs e)
+        {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            ExecuteMethod(TestConnection);
+
+            if (IsEntitySelected())
+            {
+                var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                //sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
             }
 
             Cursor = System.Windows.Forms.Cursors.Arrow;
