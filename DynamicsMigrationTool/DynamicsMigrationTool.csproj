@@ -381,9 +381,19 @@
 			<VersionNumber Include="@(Targets->'%(Version)')" />
 		</ItemGroup>
 	</Target>
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros" Condition="$(ConfigurationName) == Release">
-		<Exec Command="$(SolutionDir)libs\nuget.exe pack $(SolutionDir)DynamicsMigrationTool.nuspec -OutputDirectory $(SolutionDir) -Version @(VersionNumber)" />
-	</Target>
+  <Target Name="AfterBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros" Condition="'$(Configuration)' == 'Release'">
+	  <ItemGroup>
+		  <MergeAssemblies Include="$(OutputPath)\DynamicsMigrationTool.dll" />
+		  <MergeAssemblies Include="$(OutputPath)\Microsoft.IdentityModel.Tokens.dll" />
+	  </ItemGroup>
+	  <PropertyGroup>
+		  <OutputAssembly>$(OutputPath)Merged\DynamicsMigrationTool.dll</OutputAssembly>
+	  </PropertyGroup>
+	  <MakeDir Directories="$(OutputPath)Merged" />
+	  <Message Text="MERGING: @(MergeAssemblies->'%(Filename)') into $(OutputAssembly)" Importance="High" />
+	  <Exec Command="$(SolutionDir)libs\ilmerge /out:&quot;$(OutputAssembly)&quot; @(MergeAssemblies->'&quot;%(FullPath)&quot;', ' ')" />
+	  <Exec Command="$(SolutionDir)libs\nuget.exe pack $(SolutionDir)DynamicsMigrationTool.nuspec -OutputDirectory $(SolutionDir) -Version @(VersionNumber)" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
