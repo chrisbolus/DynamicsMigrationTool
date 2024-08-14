@@ -385,6 +385,7 @@
 	  <ItemGroup>
 		  <MergeAssemblies Include="$(OutputPath)\DynamicsMigrationTool.dll" />
 		  <MergeAssemblies Include="$(OutputPath)\Microsoft.IdentityModel.Tokens.dll" />
+		  <MergeAssemblies Include="$(OutputPath)\Microsoft.IdentityModel.Logging.dll" />
 	  </ItemGroup>
 	  <PropertyGroup>
 		  <OutputAssembly>$(OutputPath)Merged\DynamicsMigrationTool.dll</OutputAssembly>
