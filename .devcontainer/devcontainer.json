@@ -12,8 +12,6 @@
 		"vscode": {
 			"extensions": [
 				"ms-dotnettools.csdevkit",
-				"ms-azuretools.vscode-azurefunctions",
-				"ms-azuretools.vscode-azureresourcegroups",
 				"ms-dotnettools.vscode-dotnet-runtime",
 				"ms-dotnettools.csharp"
 			]
