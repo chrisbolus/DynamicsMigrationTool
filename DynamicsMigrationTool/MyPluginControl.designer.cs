@@ -199,7 +199,7 @@
             // 
             // sourceDBSchema_txtb
             // 
-            this.sourceDBSchema_txtb.Location = new System.Drawing.Point(575, 276);
+            this.sourceDBSchema_txtb.Location = new System.Drawing.Point(575, 290);
             this.sourceDBSchema_txtb.Name = "sourceDBSchema_txtb";
             this.sourceDBSchema_txtb.Size = new System.Drawing.Size(131, 22);
             this.sourceDBSchema_txtb.TabIndex = 1001;
@@ -207,7 +207,7 @@
             // 
             // stagingDBSchema_txtb
             // 
-            this.stagingDBSchema_txtb.Location = new System.Drawing.Point(575, 332);
+            this.stagingDBSchema_txtb.Location = new System.Drawing.Point(575, 340);
             this.stagingDBSchema_txtb.Name = "stagingDBSchema_txtb";
             this.stagingDBSchema_txtb.Size = new System.Drawing.Size(131, 22);
             this.stagingDBSchema_txtb.TabIndex = 1002;
@@ -216,7 +216,7 @@
             // sourceDBSchema_Lbl
             // 
             this.sourceDBSchema_Lbl.AutoSize = true;
-            this.sourceDBSchema_Lbl.Location = new System.Drawing.Point(572, 257);
+            this.sourceDBSchema_Lbl.Location = new System.Drawing.Point(572, 271);
             this.sourceDBSchema_Lbl.Name = "sourceDBSchema_Lbl";
             this.sourceDBSchema_Lbl.Size = new System.Drawing.Size(125, 16);
             this.sourceDBSchema_Lbl.TabIndex = 1003;
@@ -225,7 +225,7 @@
             // stagingDBSchema_Lbl
             // 
             this.stagingDBSchema_Lbl.AutoSize = true;
-            this.stagingDBSchema_Lbl.Location = new System.Drawing.Point(572, 313);
+            this.stagingDBSchema_Lbl.Location = new System.Drawing.Point(572, 321);
             this.stagingDBSchema_Lbl.Name = "stagingDBSchema_Lbl";
             this.stagingDBSchema_Lbl.Size = new System.Drawing.Size(128, 16);
             this.stagingDBSchema_Lbl.TabIndex = 1004;

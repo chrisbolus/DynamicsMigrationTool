@@ -619,9 +619,7 @@ SELECT
             }
             else
             {
-                MessageBox.Show("Please populate Source To Staging SSIS Project Location");
-                    sourceToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
-                }
+                MessageBox.Show("Please populate Source To Staging SSIS Project Location");                
             }
 
             Cursor = System.Windows.Forms.Cursors.Arrow;
