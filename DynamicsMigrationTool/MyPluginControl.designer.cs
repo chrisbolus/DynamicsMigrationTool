@@ -45,6 +45,7 @@
             this.stagingDBSchema_txtb = new System.Windows.Forms.TextBox();
             this.sourceDBSchema_Lbl = new System.Windows.Forms.Label();
             this.stagingDBSchema_Lbl = new System.Windows.Forms.Label();
+            this.dataTransforms_chbx = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
@@ -145,7 +146,7 @@
             // 
             this.sourceToStagingLocation_txtb.Location = new System.Drawing.Point(41, 393);
             this.sourceToStagingLocation_txtb.Name = "sourceToStagingLocation_txtb";
-            this.sourceToStagingLocation_txtb.Size = new System.Drawing.Size(683, 22);
+            this.sourceToStagingLocation_txtb.Size = new System.Drawing.Size(665, 22);
             this.sourceToStagingLocation_txtb.TabIndex = 70;
             this.sourceToStagingLocation_txtb.TextChanged += new System.EventHandler(this.sourceToStagingLocation_txtb_TextChanged);
             // 
@@ -202,10 +203,22 @@
             this.stagingDBSchema_Lbl.TabIndex = 1004;
             this.stagingDBSchema_Lbl.Text = "Staging DB Schema";
             // 
+            // dataTransforms_chbx
+            // 
+            this.dataTransforms_chbx.AutoSize = true;
+            this.dataTransforms_chbx.Location = new System.Drawing.Point(308, 197);
+            this.dataTransforms_chbx.Name = "dataTransforms_chbx";
+            this.dataTransforms_chbx.Size = new System.Drawing.Size(157, 20);
+            this.dataTransforms_chbx.TabIndex = 1006;
+            this.dataTransforms_chbx.Text = "Use Data Transforms";
+            this.dataTransforms_chbx.UseVisualStyleBackColor = true;
+            this.dataTransforms_chbx.CheckedChanged += new System.EventHandler(this.dataTransforms_chbx_CheckedChanged);
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.dataTransforms_chbx);
             this.Controls.Add(this.stagingDBSchema_Lbl);
             this.Controls.Add(this.sourceDBSchema_Lbl);
             this.Controls.Add(this.stagingDBSchema_txtb);
@@ -250,5 +263,6 @@
         private System.Windows.Forms.TextBox stagingDBSchema_txtb;
         private System.Windows.Forms.Label sourceDBSchema_Lbl;
         private System.Windows.Forms.Label stagingDBSchema_Lbl;
+        private System.Windows.Forms.CheckBox dataTransforms_chbx;
     }
 }

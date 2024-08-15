@@ -151,7 +151,7 @@ namespace DynamicsMigrationTool
             executables.Add(executable);
         }
 
-        public void GenerateXML_Executable_SQLTask_AddConstraint(XDocument package, string executableName_from, string executableName_to, int ConstraintNumber)
+        public void GenerateXML_Executable_AddConstraint(XDocument package, string executableName_from, string executableName_to, int ConstraintNumber)
         {
             var precedenceConstraints = package.Element(DTS + "Executable").Element(DTS + "PrecedenceConstraints");
 

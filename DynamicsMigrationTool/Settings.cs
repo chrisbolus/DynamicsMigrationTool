@@ -20,5 +20,6 @@ namespace DynamicsMigrationTool
         public string SourceDBConnectionString { get; set; }
         public string SourceDBSchema { get; set; }
         public string SourceToStagingLocationString { get; set; }
+        public bool UseDataTransforms { get; set; }
     }
 }

@@ -21,6 +21,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using XrmToolBox.Extensibility;
+using System.Activities.Expressions;
+using System.Activities.Statements;
 
 namespace DynamicsMigrationTool
 {
@@ -638,6 +640,73 @@ SELECT
         {
 
             mySettings.StagingDBSchema = stagingDBSchema_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+        }
+
+        private void dataTransforms_chbx_CheckedChanged(object sender, EventArgs e)
+        {
+            if(dataTransforms_chbx.Checked)
+            {
+                MessageBox.Show("Adds the Data Transforms step to the Source To Staging package, which uses the information stored in dmt.DataTransforms to make simple data transforms.\n\nA check will be made to ensure the dmt.DataTransforms table exists in the Staging Database.");
+
+                var stagingDBConnection = new SqlConnection();
+
+                Boolean isStagingDBConnectionValid = false;
+                try
+                {
+                    stagingDBConnection = new SqlConnection(mySettings.StagingDBConnectionString);
+                    stagingDBConnection.Open();
+                    isStagingDBConnectionValid = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Please review Staging Database Connection String:\n{mySettings.StagingDBConnectionString}\n\nError: {ex.Message}\n\nExample Connection String:\nData Source=DESKTOP\\SQLEXPRESS;Initial Catalog=Staging_DB;Integrated Security=True;");
+                }
+
+                if (isStagingDBConnectionValid)
+                {
+                    if(doesSchemaExist("dmt", stagingDBConnection))
+                    {
+                        try
+                        {
+
+                            new SqlCommand($"" +
+                                $"IF OBJECT_ID(N'[dmt].[DataTransforms]', N'U') IS NULL\n" +
+                                $"CREATE TABLE [dmt].[DataTransforms](\n" +
+                                $"[EntityName] [nvarchar](100) NOT NULL,[FieldName] [nvarchar](100) NOT NULL,[ValueIn] [nvarchar](255) NOT NULL,[ValueOut] [nvarchar](255) NULL,\n " +
+                                $"CONSTRAINT [PK_DMT_DataTransforms] PRIMARY KEY CLUSTERED ([EntityName] ASC,[FieldName] ASC,[ValueIn] ASC) ON [PRIMARY])", stagingDBConnection).ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Failed to create [dmt].[DataTransforms] in staging database. " + ex.Message);
+                            dataTransforms_chbx.Checked = false;
+                        }
+
+                        try
+                        {
+                            new SqlCommand($"CREATE OR ALTER PROCEDURE [dmt].[SP_RunDataTransforms]\r\n@SchemaName VARCHAR (100), @EntityName VARCHAR (100), @FieldName VARCHAR (100) = NULL\r\nAS\r\nBEGIN\r\n\r\n        DECLARE @DTEntityName VARCHAR(100)\r\n        DECLARE @DTFieldName VARCHAR(100)\r\n        DECLARE @strsql VARCHAR(MAX)\r\n\r\n        DECLARE curs CURSOR FOR \r\n\t\t\tSELECT DISTINCT EntityName, FieldName\r\n\t\t\tFROM dmt.DataTransforms\r\n\t\t\tWHERE EntityName = @EntityName AND FieldName = ISNULL(@FieldName, FieldName)\r\n\r\n        OPEN  curs\r\n\r\n        FETCH NEXT FROM curs INTO @DTEntityName, @DTFieldName\r\n\r\n        WHILE @@FETCH_STATUS = 0 \r\n            BEGIN\r\n\t\t\t\tSET @strsql = \t\t\t\t\r\n'UPDATE e \r\nSET e.[' + @DTFieldName + '] = t.ValueOut \r\nFROM [' + @SchemaName + '].[' + @DTEntityName + '] AS e\r\nINNER JOIN [dmt].[DataTransforms] AS t ON CAST(e.[' + @DTFieldName + '] AS NVARCHAR(255)) = t.ValueIn COLLATE DATABASE_DEFAULT\r\nWHERE t.entityname = ''' + @DTEntityName + ''' \r\nAND t.fieldname = ''' + @DTFieldName + ''''\r\n                EXEC(@strsql)\r\n                FETCH NEXT FROM curs INTO @DTEntityName, @DTFieldName\r\n            END\r\n        CLOSE curs\r\n        DEALLOCATE curs\r\n    END\r\n", stagingDBConnection).ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Failed to create or alter [dmt].[SP_RunDataTransforms] in staging database. " + ex.Message);
+                            dataTransforms_chbx.Checked = false;
+                        }
+
+                        if(dataTransforms_chbx.Checked)
+                        {
+                            MessageBox.Show("Check Successful.");
+                        }
+
+                    }
+                    else
+                    {
+                        dataTransforms_chbx.Checked = false;
+                    }
+                }
+            }
+
+
+            mySettings.UseDataTransforms = dataTransforms_chbx.Checked;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
     }
