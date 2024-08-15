@@ -1,4 +1,5 @@
 ﻿using McTools.Xrm.Connection;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Deployment;
 using Microsoft.Xrm.Sdk.Extensions;
@@ -8,6 +9,7 @@ using Microsoft.Xrm.Sdk.Metadata.Query;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Tooling.Connector;
 using System;
+using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -19,17 +21,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using XrmToolBox.Extensibility;
-using Microsoft.SqlServer.Management.Smo;
-using Microsoft.SqlServer.Management.Common;
-using View = Microsoft.SqlServer.Management.Smo.View;
-using Server = Microsoft.SqlServer.Management.Smo.Server;
-using System.Data.SqlClient;
-using System.Activities.Expressions;
-using System.Diagnostics.Metrics;
-using DynamicsMigrationTool;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.Crm.Sdk.Messages;
 
 namespace DynamicsMigrationTool
 {
