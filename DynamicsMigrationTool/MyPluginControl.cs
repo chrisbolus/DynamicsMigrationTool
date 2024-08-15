@@ -64,6 +64,10 @@ namespace DynamicsMigrationTool
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
                 sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
 
+                //detatching and then reattaching the checkchanged so we can set the tickbox without a popup message.
+                dataTransforms_chbx.CheckedChanged -= dataTransforms_chbx_CheckedChanged;
+                dataTransforms_chbx.Checked = mySettings.UseDataTransforms;
+                dataTransforms_chbx.CheckedChanged += dataTransforms_chbx_CheckedChanged;
             }
         }
 
