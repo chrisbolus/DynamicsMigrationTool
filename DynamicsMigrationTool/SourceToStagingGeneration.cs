@@ -120,8 +120,8 @@ namespace DynamicsMigrationTool
 
             var components = executable.Element(DTS + "ObjectData").Element("pipeline").Element("components");
 
-            XMLGen.GenerateXML_DataFlow_Component_OLEDBSource(components, entityName, dataFlowNumber, sourceFields, "SourceDB");
-            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, dataFlowNumber, sourceFields, destinationFields, "StagingDB");
+            XMLGen.GenerateXML_DataFlow_Component_OLEDBSource(components, entityName, mySettings.SourceDBSchema, dataFlowNumber, sourceFields, "SourceDB");
+            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, mySettings.StagingDBSchema, dataFlowNumber, sourceFields, destinationFields, "StagingDB");
 
             var paths = executable.Element(DTS + "ObjectData").Element("pipeline").Element("paths");
 
@@ -138,7 +138,7 @@ namespace DynamicsMigrationTool
         private void GenerateXML_Executable_SQLTask_S2STruncateStagingTable(XDocument package, string entityName)
         {
             var SQLConnection = StagingDBId;
-            var SQLQuery = $"truncate table dbo.{entityName}";
+            var SQLQuery = $"truncate table {mySettings.StagingDBSchema}.{entityName}";
 
             XMLGen.GenerateXML_Executable_SQLTask_AddTask(package, "Truncate Staging Table", SQLConnection, SQLQuery);
         }
@@ -146,7 +146,7 @@ namespace DynamicsMigrationTool
         private void GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(XDocument package, string entityName)
         {
             var SQLConnection = StagingDBId;
-            var SQLQuery = $"declare @idxStr nvarchar(2000);\nSELECT @idxStr = (\nselect 'drop index '+o.name+'.'+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key <> 1\nand i.index_id > 0\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @idxStr;\n\ndeclare @pKStr nvarchar(500);\nSELECT @pKStr = (\nselect 'alter table '+o.name+' drop constraint '+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key = 1\nand o.name = '{entityName}'\nand s.name = 'dbo'\nFOR xml path('') );\nexec sp_executesql @pKStr;\n";
+            var SQLQuery = $"declare @idxStr nvarchar(2000);\nSELECT @idxStr = (\nselect 'drop index '+s.name+'.'+o.name+'.'+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key <> 1\nand i.index_id > 0\nand o.name = '{entityName}'\nand s.name = '{mySettings.StagingDBSchema}'\nFOR xml path('') );\nexec sp_executesql @idxStr;\n\ndeclare @pKStr nvarchar(500);\nSELECT @pKStr = (\nselect 'alter table '+s.name+'.'+o.name+' drop constraint '+i.name+';'\nfrom sys.indexes i\njoin sys.objects o on i.object_id=o.object_id\njoin sys.schemas as s on s.schema_id = o.schema_id\nwhere o.type <> 'S'\nand i.is_primary_key = 1\nand o.name = '{entityName}'\nand s.name = '{mySettings.StagingDBSchema}'\nFOR xml path('') );\nexec sp_executesql @pKStr;\n";
 
             XMLGen.GenerateXML_Executable_SQLTask_AddTask(package, "Drop Indexes and PK", SQLConnection, SQLQuery);
         }
@@ -156,7 +156,7 @@ namespace DynamicsMigrationTool
             var dateTimeNow = DateTime.Now.ToString("yyyyMMddHHmmss");
 
             var SQLConnection = StagingDBId;
-            var SQLQuery = $"ALTER TABLE [dbo].[{entityName}] ADD CONSTRAINT [PK_{entityName}_{dateTimeNow}] PRIMARY KEY CLUSTERED \n(\n\t[Source_System_Id] ASC,\n\t[{PrimaryIdAttribute}_Source] ASC\n) ON [PRIMARY]\nGO";
+            var SQLQuery = $"ALTER TABLE [{mySettings.StagingDBSchema}].[{entityName}] ADD CONSTRAINT [PK_{entityName}_{dateTimeNow}] PRIMARY KEY CLUSTERED \n(\n\t[Source_System_Id] ASC,\n\t[{PrimaryIdAttribute}_Source] ASC\n) ON [PRIMARY]\nGO";
 
             XMLGen.GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd PK", SQLConnection, SQLQuery);
         }
@@ -164,11 +164,11 @@ namespace DynamicsMigrationTool
         {
             var SQLConnection = StagingDBId;
             var SQLQuery =
-                                //$"CREATE NONCLUSTERED INDEX [IDX_CreateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                //$"CREATE NONCLUSTERED INDEX [IDX_UpdateParameters] ON [dbo].[{entityName}]\n(\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                //$"CREATE NONCLUSTERED INDEX [IDX_DeleteParameters] ON [dbo].[{entityName}]\n(\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO\n\n" +
-                                //$"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC,\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC,\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO";
-                                $"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [dbo].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[DynId] ASC\n) ON [PRIMARY]\nGO";
+                                //$"CREATE NONCLUSTERED INDEX [IDX_CreateParameters] ON [{mySettings.StagingDBSchema}].[{entityName}]\n(\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_UpdateParameters] ON [{mySettings.StagingDBSchema}].[{entityName}]\n(\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_DeleteParameters] ON [{mySettings.StagingDBSchema}].[{entityName}]\n(\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO\n\n" +
+                                //$"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [{mySettings.StagingDBSchema}].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[FlagCreate] ASC,\n\t[DynCreateId] ASC,\n\t[FlagUpdate] ASC,\n\t[DynUpdateId] ASC,\n\t[FlagDelete] ASC,\n\t[DynDeleteId] ASC\n) ON [PRIMARY]\nGO";
+                                $"CREATE NONCLUSTERED INDEX [IDX_Processing_Status] ON [{mySettings.StagingDBSchema}].[{entityName}]\n(\n\t[Processing_Status] ASC,\n\t[DynId] ASC\n) ON [PRIMARY]\nGO";
 
             XMLGen.GenerateXML_Executable_SQLTask_AddTask(package, "ReAdd Indexes", SQLConnection, SQLQuery);
         }
