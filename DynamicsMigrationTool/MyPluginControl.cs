@@ -64,6 +64,8 @@ namespace DynamicsMigrationTool
                     sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
                 }
 
+                sourceDBSchema_txtb.Text = mySettings.SourceDBSchema;
+                stagingDBSchema_txtb.Text = mySettings.StagingDBSchema;
                 sourceDBConnection_txtb.Text = mySettings.SourceDBConnectionString;
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
                 sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
@@ -597,6 +599,20 @@ SELECT
             }
 
             Cursor = System.Windows.Forms.Cursors.Arrow;
+        }
+
+        private void sourceDBSchema_txtb_TextChanged(object sender, EventArgs e)
+        {
+
+            mySettings.SourceDBSchema = sourceDBSchema_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+        }
+
+        private void stagingDBSchema_txtb_TextChanged(object sender, EventArgs e)
+        {
+
+            mySettings.StagingDBSchema = stagingDBSchema_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
         }
     }
 }
