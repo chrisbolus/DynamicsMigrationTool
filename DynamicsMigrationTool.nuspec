@@ -23,6 +23,6 @@
 	<files>
 		<file src="V_64x64.png" target="images" />
 		<file src="README.md" target="" />
-		<file src="DynamicsMigrationTool\bin\Release\DynamicsMigrationTool.dll" target="lib\net481\Plugins" />
+		<file src="DynamicsMigrationTool\bin\Release\Merged\DynamicsMigrationTool.dll" target="lib\net481\Plugins" />
 	</files>
 </package>

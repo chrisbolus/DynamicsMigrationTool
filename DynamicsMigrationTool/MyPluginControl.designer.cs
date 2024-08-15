@@ -44,6 +44,10 @@
             this.stagingToCRMLocation_txtb = new System.Windows.Forms.TextBox();
             this.stagingToCRMLocation_Lbl = new System.Windows.Forms.Label();
             this.CreateStagingToCRMPackage_Btn = new System.Windows.Forms.Button();
+            this.sourceDBSchema_txtb = new System.Windows.Forms.TextBox();
+            this.stagingDBSchema_txtb = new System.Windows.Forms.TextBox();
+            this.sourceDBSchema_Lbl = new System.Windows.Forms.Label();
+            this.stagingDBSchema_Lbl = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
@@ -58,19 +62,19 @@
             // 
             // EntityCmb
             // 
+            this.EntityCmb.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
+            this.EntityCmb.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             this.EntityCmb.FormattingEnabled = true;
             this.EntityCmb.Location = new System.Drawing.Point(42, 70);
             this.EntityCmb.Name = "EntityCmb";
             this.EntityCmb.Size = new System.Drawing.Size(265, 24);
             this.EntityCmb.TabIndex = 10;
-            this.EntityCmb.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
-            this.EntityCmb.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             // 
             // stagingDBConnection_txtb
             // 
             this.stagingDBConnection_txtb.Location = new System.Drawing.Point(42, 340);
             this.stagingDBConnection_txtb.Name = "stagingDBConnection_txtb";
-            this.stagingDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
+            this.stagingDBConnection_txtb.Size = new System.Drawing.Size(505, 22);
             this.stagingDBConnection_txtb.TabIndex = 60;
             this.stagingDBConnection_txtb.TextChanged += new System.EventHandler(this.stagingDBConnection_txtb_TextChanged);
             // 
@@ -116,7 +120,7 @@
             // 
             this.sourceDBConnection_txtb.Location = new System.Drawing.Point(42, 290);
             this.sourceDBConnection_txtb.Name = "sourceDBConnection_txtb";
-            this.sourceDBConnection_txtb.Size = new System.Drawing.Size(683, 22);
+            this.sourceDBConnection_txtb.Size = new System.Drawing.Size(505, 22);
             this.sourceDBConnection_txtb.TabIndex = 50;
             this.sourceDBConnection_txtb.TextChanged += new System.EventHandler(this.sourceDBConnection_txtb_TextChanged);
             // 
@@ -193,6 +197,40 @@
             this.CreateStagingToCRMPackage_Btn.UseVisualStyleBackColor = true;
             this.CreateStagingToCRMPackage_Btn.Click += new System.EventHandler(this.CreateStagingToCRMPackage_Btn_Click);
             // 
+            // sourceDBSchema_txtb
+            // 
+            this.sourceDBSchema_txtb.Location = new System.Drawing.Point(575, 276);
+            this.sourceDBSchema_txtb.Name = "sourceDBSchema_txtb";
+            this.sourceDBSchema_txtb.Size = new System.Drawing.Size(131, 22);
+            this.sourceDBSchema_txtb.TabIndex = 1001;
+            this.sourceDBSchema_txtb.TextChanged += new System.EventHandler(this.sourceDBSchema_txtb_TextChanged);
+            // 
+            // stagingDBSchema_txtb
+            // 
+            this.stagingDBSchema_txtb.Location = new System.Drawing.Point(575, 332);
+            this.stagingDBSchema_txtb.Name = "stagingDBSchema_txtb";
+            this.stagingDBSchema_txtb.Size = new System.Drawing.Size(131, 22);
+            this.stagingDBSchema_txtb.TabIndex = 1002;
+            this.stagingDBSchema_txtb.TextChanged += new System.EventHandler(this.stagingDBSchema_txtb_TextChanged);
+            // 
+            // sourceDBSchema_Lbl
+            // 
+            this.sourceDBSchema_Lbl.AutoSize = true;
+            this.sourceDBSchema_Lbl.Location = new System.Drawing.Point(572, 257);
+            this.sourceDBSchema_Lbl.Name = "sourceDBSchema_Lbl";
+            this.sourceDBSchema_Lbl.Size = new System.Drawing.Size(125, 16);
+            this.sourceDBSchema_Lbl.TabIndex = 1003;
+            this.sourceDBSchema_Lbl.Text = "Source DB Schema";
+            // 
+            // stagingDBSchema_Lbl
+            // 
+            this.stagingDBSchema_Lbl.AutoSize = true;
+            this.stagingDBSchema_Lbl.Location = new System.Drawing.Point(572, 313);
+            this.stagingDBSchema_Lbl.Name = "stagingDBSchema_Lbl";
+            this.stagingDBSchema_Lbl.Size = new System.Drawing.Size(128, 16);
+            this.stagingDBSchema_Lbl.TabIndex = 1004;
+            this.stagingDBSchema_Lbl.Text = "Staging DB Schema";
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -201,6 +239,10 @@
             this.Controls.Add(this.stagingToCRMLocation_Lbl);
             this.Controls.Add(this.stagingToCRMLocation_txtb);
             this.Controls.Add(this.CreateSourceToStagingPackage_Btn);
+            this.Controls.Add(this.stagingDBSchema_Lbl);
+            this.Controls.Add(this.sourceDBSchema_Lbl);
+            this.Controls.Add(this.stagingDBSchema_txtb);
+            this.Controls.Add(this.sourceDBSchema_txtb);
             this.Controls.Add(this.sourceToStagingLocation_Lbl);
             this.Controls.Add(this.sourceToStagingLocation_txtb);
             this.Controls.Add(this.SourceDatabase_Lbl);
@@ -239,5 +281,9 @@
         private System.Windows.Forms.TextBox stagingToCRMLocation_txtb;
         private System.Windows.Forms.Label stagingToCRMLocation_Lbl;
         private System.Windows.Forms.Button CreateStagingToCRMPackage_Btn;
+        private System.Windows.Forms.TextBox sourceDBSchema_txtb;
+        private System.Windows.Forms.TextBox stagingDBSchema_txtb;
+        private System.Windows.Forms.Label sourceDBSchema_Lbl;
+        private System.Windows.Forms.Label stagingDBSchema_Lbl;
     }
 }

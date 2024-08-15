@@ -169,7 +169,7 @@ namespace DynamicsMigrationTool
         }
 
 
-        public void GenerateXML_DataFlow_Component_OLEDBSource(XElement components, string entityName, int dataFlowNumber, List<EntityAttribute_AdditionalInfo> SourceFields, string conmgrName)
+        public void GenerateXML_DataFlow_Component_OLEDBSource(XElement components, string entityName, string schemaName, int dataFlowNumber, List<EntityAttribute_AdditionalInfo> SourceFields, string conmgrName)
         {
             var component = new XElement("component",
                                 new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Source"),
@@ -181,13 +181,13 @@ namespace DynamicsMigrationTool
 
             components.Add(component);
 
-            GenerateXML_DataFlow_Component_Properties(component, entityName);
+            GenerateXML_DataFlow_Component_Properties(component, entityName, schemaName);
             GenerateXML_DataFlow_Component_Connections_OLEDBSource(component, entityName, dataFlowNumber, conmgrName);
             GenerateXML_DataFlow_Component_OLEDBSource_Output(component, entityName, dataFlowNumber, SourceFields);
         }
 
 
-        public void GenerateXML_DataFlow_Component_OLEDBDestination(XElement components, string entityName, int dataFlowNumber, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string conmgrName)
+        public void GenerateXML_DataFlow_Component_OLEDBDestination(XElement components, string entityName, string schemaName, int dataFlowNumber, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string conmgrName)
         {
             var component = new XElement("component",
                                 new XAttribute("refId", $"Package\\Data Flow Task_{dataFlowNumber}\\OLE DB Destination"),
@@ -199,7 +199,7 @@ namespace DynamicsMigrationTool
 
             components.Add(component);
 
-            GenerateXML_DataFlow_Component_Properties(component, entityName);
+            GenerateXML_DataFlow_Component_Properties(component, entityName, schemaName);
             GenerateXML_DataFlow_Component_Connections_OLEDBDestination(component, entityName, dataFlowNumber, conmgrName);
             GenerateXML_DataFlow_Component_OLEDBDestination_Input(component, entityName, dataFlowNumber, SourceFields, DestinationFields);
             GenerateXML_DataFlow_Component_OLEDBDestination_Output(component, entityName, dataFlowNumber);
@@ -436,7 +436,7 @@ namespace DynamicsMigrationTool
             component.Add(connections);
         }
 
-        private void GenerateXML_DataFlow_Component_Properties(XElement component, string entityName)
+        private void GenerateXML_DataFlow_Component_Properties(XElement component, string entityName, string schemaName)
         {
             var properties = new XElement("properties",
                                 new XElement("property",
@@ -476,7 +476,7 @@ namespace DynamicsMigrationTool
                                     new XAttribute("dataType", "System.String"),
                                     new XAttribute("description", "Specifies the name of the database object used to open a rowset."),
                                     new XAttribute("name", "OpenRowset"),
-                                    $"[dbo].[{entityName}]"
+                                    $"[{schemaName}].[{entityName}]"
                                 ),
                                 new XElement("property",
                                     new XAttribute("dataType", "System.Int32"),
@@ -517,7 +517,7 @@ namespace DynamicsMigrationTool
                                     new XAttribute("dataType", "System.String"),
                                     new XAttribute("description", "Specifies the name of the database object used to open a rowset."),
                                     new XAttribute("name", "OpenRowset"),
-                                    $"[dmt].[{entityName}]"
+                                    $"[{schemaName}].[{entityName}]"
                                 ),
                                 new XElement("property",
                                     new XAttribute("dataType", "System.Int32"),
