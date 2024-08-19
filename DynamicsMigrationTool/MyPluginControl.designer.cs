@@ -46,6 +46,11 @@
             this.sourceDBSchema_Lbl = new System.Windows.Forms.Label();
             this.stagingDBSchema_Lbl = new System.Windows.Forms.Label();
             this.dataTransforms_chbx = new System.Windows.Forms.CheckBox();
+            this.crmToStagingLocation_txtb = new System.Windows.Forms.TextBox();
+            this.crmToStagingLocation_lbl = new System.Windows.Forms.Label();
+            this.stagingDBImportSchema_txtb = new System.Windows.Forms.TextBox();
+            this.stagingDBImportSchema_lbl = new System.Windows.Forms.Label();
+            this.createCRMToStagingPackage_btn = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
@@ -214,10 +219,59 @@
             this.dataTransforms_chbx.UseVisualStyleBackColor = true;
             this.dataTransforms_chbx.CheckedChanged += new System.EventHandler(this.dataTransforms_chbx_CheckedChanged);
             // 
+            // crmToStagingLocation_txtb
+            // 
+            this.crmToStagingLocation_txtb.Location = new System.Drawing.Point(41, 550);
+            this.crmToStagingLocation_txtb.Name = "crmToStagingLocation_txtb";
+            this.crmToStagingLocation_txtb.Size = new System.Drawing.Size(505, 22);
+            this.crmToStagingLocation_txtb.TabIndex = 1007;
+            this.crmToStagingLocation_txtb.TextChanged += new System.EventHandler(this.crmToStagingLocation_txtb_TextChanged);
+            // 
+            // crmToStagingLocation_lbl
+            // 
+            this.crmToStagingLocation_lbl.AutoSize = true;
+            this.crmToStagingLocation_lbl.Location = new System.Drawing.Point(38, 531);
+            this.crmToStagingLocation_lbl.Name = "crmToStagingLocation_lbl";
+            this.crmToStagingLocation_lbl.Size = new System.Drawing.Size(238, 16);
+            this.crmToStagingLocation_lbl.TabIndex = 1008;
+            this.crmToStagingLocation_lbl.Text = "CRM To Staging SSIS Project Location";
+            // 
+            // stagingDBImportSchema_txtb
+            // 
+            this.stagingDBImportSchema_txtb.Location = new System.Drawing.Point(575, 550);
+            this.stagingDBImportSchema_txtb.Name = "stagingDBImportSchema_txtb";
+            this.stagingDBImportSchema_txtb.Size = new System.Drawing.Size(131, 22);
+            this.stagingDBImportSchema_txtb.TabIndex = 1009;
+            this.stagingDBImportSchema_txtb.TextChanged += new System.EventHandler(this.stagingDBImportSchema_txtb_TextChanged);
+            // 
+            // stagingDBImportSchema_lbl
+            // 
+            this.stagingDBImportSchema_lbl.AutoSize = true;
+            this.stagingDBImportSchema_lbl.Location = new System.Drawing.Point(572, 531);
+            this.stagingDBImportSchema_lbl.Name = "stagingDBImportSchema_lbl";
+            this.stagingDBImportSchema_lbl.Size = new System.Drawing.Size(168, 16);
+            this.stagingDBImportSchema_lbl.TabIndex = 1010;
+            this.stagingDBImportSchema_lbl.Text = "Staging DB Import Schema";
+            // 
+            // createCRMToStagingPackage_btn
+            // 
+            this.createCRMToStagingPackage_btn.Location = new System.Drawing.Point(41, 487);
+            this.createCRMToStagingPackage_btn.Name = "createCRMToStagingPackage_btn";
+            this.createCRMToStagingPackage_btn.Size = new System.Drawing.Size(247, 32);
+            this.createCRMToStagingPackage_btn.TabIndex = 1011;
+            this.createCRMToStagingPackage_btn.Text = "Create CRM To Staging Package";
+            this.createCRMToStagingPackage_btn.UseVisualStyleBackColor = true;
+            this.createCRMToStagingPackage_btn.Click += new System.EventHandler(this.createCRMToStagingPackage_btn_Click);
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.createCRMToStagingPackage_btn);
+            this.Controls.Add(this.stagingDBImportSchema_lbl);
+            this.Controls.Add(this.stagingDBImportSchema_txtb);
+            this.Controls.Add(this.crmToStagingLocation_lbl);
+            this.Controls.Add(this.crmToStagingLocation_txtb);
             this.Controls.Add(this.dataTransforms_chbx);
             this.Controls.Add(this.stagingDBSchema_Lbl);
             this.Controls.Add(this.sourceDBSchema_Lbl);
@@ -238,7 +292,7 @@
             this.Controls.Add(this.CreateStgTbl_Btn);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "MyPluginControl";
-            this.Size = new System.Drawing.Size(746, 446);
+            this.Size = new System.Drawing.Size(833, 602);
             this.Load += new System.EventHandler(this.MyPluginControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -264,5 +318,10 @@
         private System.Windows.Forms.Label sourceDBSchema_Lbl;
         private System.Windows.Forms.Label stagingDBSchema_Lbl;
         private System.Windows.Forms.CheckBox dataTransforms_chbx;
+        private System.Windows.Forms.TextBox crmToStagingLocation_txtb;
+        private System.Windows.Forms.Label crmToStagingLocation_lbl;
+        private System.Windows.Forms.TextBox stagingDBImportSchema_txtb;
+        private System.Windows.Forms.Label stagingDBImportSchema_lbl;
+        private System.Windows.Forms.Button createCRMToStagingPackage_btn;
     }
 }

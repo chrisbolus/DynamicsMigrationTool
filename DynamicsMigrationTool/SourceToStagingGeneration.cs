@@ -49,16 +49,20 @@ namespace DynamicsMigrationTool
 
             if (project != null)
             {
-                SourceDBId = XMLGen.GetOLEDBConmgrId(ssisProjectLocation, "SourceDB");
-                StagingDBId = XMLGen.GetOLEDBConmgrId(ssisProjectLocation, "StagingDB");
+                SourceDBId = XMLGen.GetConmgr(ssisProjectLocation, "SourceDB").DTSID;
+                StagingDBId = XMLGen.GetConmgr(ssisProjectLocation, "StagingDB").DTSID;
 
                 if (SourceDBId != null && StagingDBId != null)
                 {
                     XMLGen.GenerateXML_SSISPackageBase(package, entityName);
-                    GenerateXML_Executable_SQLTask_S2STruncateStagingTable(package, entityName);
+                    XMLGen.GenerateXML_Executable_SQLTask_TruncateTable(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
-                    GenerateXML_Executable_DataFlow_SimpleSourceToStaging(package, entityName);
-                    if(mySettings.UseDataTransforms)
+
+                    var dataFlowTaskName = "DataFlowTask";
+
+                    XMLGen.GenerateXML_Executable_DataFlow_Base(package, entityName, dataFlowTaskName);
+                    GenerateXML_Executable_DataFlow_SimpleSourceToStaging(package, entityName, dataFlowTaskName);
+                    if (mySettings.UseDataTransforms)
                     {
                         GenerateXML_Executable_SQLTask_S2SDataTransforms(package, entityName);
                     }
@@ -69,17 +73,17 @@ namespace DynamicsMigrationTool
                     int ConstraintNumber = 1;
 
 
-                    XMLGen.GenerateXML_Executable_AddConstraint(package, "Truncate Staging Table", "Drop Indexes and PK", ConstraintNumber++);
-                    XMLGen.GenerateXML_Executable_AddConstraint(package, "Drop Indexes and PK", "Data Flow Task_1", ConstraintNumber++);
+                    XMLGen.GenerateXML_Executable_AddConstraint(package, $"Truncate {{{mySettings.StagingDBSchema}}}{{{entityName}}}", "Drop Indexes and PK", ConstraintNumber++);
+                    XMLGen.GenerateXML_Executable_AddConstraint(package, "Drop Indexes and PK", dataFlowTaskName, ConstraintNumber++);
                     if(mySettings.UseDataTransforms)
                     {
 
-                        XMLGen.GenerateXML_Executable_AddConstraint(package, "Data Flow Task_1", "Data Transforms", ConstraintNumber++);
+                        XMLGen.GenerateXML_Executable_AddConstraint(package, dataFlowTaskName, "Data Transforms", ConstraintNumber++);
                         XMLGen.GenerateXML_Executable_AddConstraint(package, "Data Transforms", "ReAdd PK", ConstraintNumber++);
                     }
                     else
                     {
-                        XMLGen.GenerateXML_Executable_AddConstraint(package, "Data Flow Task_1", "ReAdd PK", ConstraintNumber++);
+                        XMLGen.GenerateXML_Executable_AddConstraint(package, dataFlowTaskName, "ReAdd PK", ConstraintNumber++);
                     }
                     XMLGen.GenerateXML_Executable_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
 
@@ -108,41 +112,22 @@ namespace DynamicsMigrationTool
         }
 
 
-        private void GenerateXML_Executable_DataFlow_SimpleSourceToStaging(XDocument package, string entityName)
+        private void GenerateXML_Executable_DataFlow_SimpleSourceToStaging(XDocument package, string entityName, string dataFlowTaskName)
         {
-            //@chris will need to make this dynamics when handling multiple source systems
-            int dataFlowNumber = 1;
+            var sourceFields = CRMHelper.GetFullFieldList(Service, entityName);
+            var destinationFields = CRMHelper.GetFullFieldList(Service, entityName, true);
 
-            var entityMetadata = Service.GetEntityMetadata(entityName);
-            var sourceFields = CRMHelper.GetFullFieldList(Service, entityMetadata);
-            var destinationFields = CRMHelper.GetFullFieldList(Service, entityMetadata, true);
-
-
-            var executables = package.Element(DTS + "Executable").Element(DTS + "Executables");
-
-            var executable = new XElement(DTS + "Executable",
-                                new XAttribute(DTS + "DTSID", XMLGen.GenerateNewXMLGuid()),
-                                new XAttribute(DTS + "refId", "Package\\Data Flow Task_" + dataFlowNumber),
-                                new XAttribute(DTS + "CreationName", "Microsoft.Pipeline"),
-                                new XAttribute(DTS + "ExecutableType", "Microsoft.Pipeline"),
-                                new XAttribute(DTS + "ObjectName", "Data Flow Task_" + dataFlowNumber),
-                                new XElement(DTS + "ObjectData",
-                                    new XElement("pipeline",
-                                        new XAttribute("version", "1"),
-                                        new XElement("components"),
-                                        new XElement("paths")
-                                        )));
-
-            executables.Add(executable);
+            var executable = package.Element(DTS + "Executable").Element(DTS + "Executables").Elements(DTS + "Executable").Where(x => x.Attribute(DTS + "ObjectName").Value == dataFlowTaskName).FirstOrDefault();
 
             var components = executable.Element(DTS + "ObjectData").Element("pipeline").Element("components");
 
-            XMLGen.GenerateXML_DataFlow_Component_OLEDBSource(components, entityName, mySettings.SourceDBSchema, dataFlowNumber, sourceFields, "SourceDB");
-            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, mySettings.StagingDBSchema, dataFlowNumber, sourceFields, destinationFields, "StagingDB");
+            XMLGen.GenerateXML_DataFlow_Component_OLEDBSource(components, entityName, mySettings.SourceDBSchema, dataFlowTaskName, sourceFields, "SourceDB");
+            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, mySettings.StagingDBSchema, dataFlowTaskName, sourceFields, destinationFields, "StagingDB", "OLE DB Source");
+
 
             var paths = executable.Element(DTS + "ObjectData").Element("pipeline").Element("paths");
 
-            var pathStringBase = "Package\\Data Flow Task_" + dataFlowNumber;
+            var pathStringBase = "Package\\" + dataFlowTaskName;
 
             paths.Add(new XElement("path",
                             new XAttribute("refId", pathStringBase + ".Paths[OLE DB Source Output]"),
@@ -150,15 +135,10 @@ namespace DynamicsMigrationTool
                             new XAttribute("startId", pathStringBase + "\\OLE DB Source.Outputs[OLE DB Source Output]"),
                             new XAttribute("endId", pathStringBase + "\\OLE DB Destination.Inputs[OLE DB Destination Input]")
                             ));
+
         }
 
-        private void GenerateXML_Executable_SQLTask_S2STruncateStagingTable(XDocument package, string entityName)
-        {
-            var SQLConnection = StagingDBId;
-            var SQLQuery = $"truncate table {mySettings.StagingDBSchema}.{entityName}";
-
-            XMLGen.GenerateXML_Executable_SQLTask_AddTask(package, "Truncate Staging Table", SQLConnection, SQLQuery);
-        }
+        
 
         private void GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(XDocument package, string entityName)
         {

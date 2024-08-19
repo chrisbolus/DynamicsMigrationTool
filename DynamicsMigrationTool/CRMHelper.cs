@@ -30,19 +30,31 @@ namespace DynamicsMigrationTool
                 //Bad Records
                 EntAAI.isValidForMigration = false;
             }
-            else if (attribute.AttributeType == AttributeTypeCode.BigInt)
+            if (attribute.AttributeType == AttributeTypeCode.BigInt)
             {
                 EntAAI.DBDataType = "BIGINT";
                 EntAAI.SSISDataType = "i8";
             }
-            else if (attribute.AttributeType == AttributeTypeCode.Boolean
-                || attribute.AttributeType == AttributeTypeCode.EntityName
-                || attribute.AttributeType == AttributeTypeCode.Picklist
+            else if (attribute.AttributeType == AttributeTypeCode.Picklist
                 || attribute.AttributeType == AttributeTypeCode.State
                 || attribute.AttributeType == AttributeTypeCode.Status)
             {
                 EntAAI.DBDataType = "NVARCHAR(255)";
+                EntAAI.SSISDataType_Staging = "wstr";
+                EntAAI.SSISDataType = "i4";
+                EntAAI.StringLength = 255;
+            }
+            else if (attribute.AttributeType == AttributeTypeCode.EntityName)
+            {
+                EntAAI.DBDataType = "NVARCHAR(255)";
                 EntAAI.SSISDataType = "wstr";
+                EntAAI.StringLength = 255;
+            }
+            else if (attribute.AttributeType == AttributeTypeCode.Boolean)
+            {
+                EntAAI.DBDataType = "NVARCHAR(255)";
+                EntAAI.SSISDataType_Staging = "wstr";
+                EntAAI.SSISDataType = "bool";
                 EntAAI.StringLength = 255;
             }
             else if (attribute.AttributeType == AttributeTypeCode.Customer
@@ -73,7 +85,8 @@ namespace DynamicsMigrationTool
             else if (attribute.AttributeType == AttributeTypeCode.Decimal)
             {
                 EntAAI.DBDataType = "DECIMAL(23, 10)";
-                EntAAI.SSISDataType = "numeric";
+                EntAAI.SSISDataType_Staging = "numeric";
+                EntAAI.SSISDataType = "decimal";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Double)
             {
@@ -94,7 +107,8 @@ namespace DynamicsMigrationTool
             else if (attribute.AttributeType == AttributeTypeCode.Money)
             {
                 EntAAI.DBDataType = "MONEY";
-                EntAAI.SSISDataType = "cy";
+                EntAAI.SSISDataType_Staging = "cy";
+                EntAAI.SSISDataType = "decimal";
             }
             else if (attribute.AttributeType == AttributeTypeCode.String)
             {
@@ -128,9 +142,17 @@ namespace DynamicsMigrationTool
                     EntAAI.SSISDataType = "image";
                     EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
                 }
+                else if (attribute.AttributeTypeName.Value == "VirtualType")
+                {
+                    EntAAI.DBDataType = "NVARCHAR(255)";
+                    EntAAI.SSISDataType = "wstr";
+                    EntAAI.StringLength = 255;
+                    EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + " - " + attribute.AttributeTypeName.Value;
+                    EntAAI.isValidForMigration = false;
+                }
                 else
                 {
-                    //attribute.AttributeTypeName.Value == "VirtualType"
+                    //nothing should hit this
                     EntAAI.isValidForMigration = false;
                 }
             }
@@ -166,43 +188,63 @@ namespace DynamicsMigrationTool
             else return null;
         }
 
-        public static List<EntityAttribute_AdditionalInfo> GetFullFieldList(IOrganizationService Service, EntityMetadata entity, bool includeStagingFields = false)
+        public static List<EntityAttribute_AdditionalInfo> GetFullFieldList(IOrganizationService Service, string entityName, bool includeAdditionalStagingFields = false, bool getRawCRMFields = false)
         {
+            var entity = Service.GetEntityMetadata(entityName);
+
             var eList = new List<EntityAttribute_AdditionalInfo>();
 
             foreach(var attribute in entity.Attributes.OrderBy(a => a.LogicalName))
             {
                 EntityAttribute_AdditionalInfo entAAI = CRMHelper.Get_EntityAttribute_AdditionalInfo(Service, attribute);
 
-                if (entAAI.isValidForMigration) 
+                if (!getRawCRMFields)
                 {
+                    if (entAAI.SSISDataType_Staging != null)
+                    {
+                        entAAI.SSISDataType = entAAI.SSISDataType_Staging;
+                    }
 
-                    if (entAAI.isLookup)
+                    if (entAAI.isValidForMigration)
                     {
 
-                        eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTSourceField(entAAI));
-                        if (entAAI.isPrimaryKey)
+                        if (entAAI.isLookup)
                         {
-                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTIntegerField(entAAI.entityName, "Leader_System_Id"));
-                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTLeaderField(entAAI));
+
+                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_SourceField(entAAI));
+                            if (entAAI.isPrimaryKey)
+                            {
+                                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entAAI.entityName, "Leader_System_Id"));
+                                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_LeaderField(entAAI));
+                            }
+                            else
+                            {
+                                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_LookupTypeField(entAAI));
+                                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DynamicsLookupFields(entAAI));
+                            }
                         }
                         else
                         {
-                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTLookupTypeField(entAAI));
-                            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTDynamicsLookupFields(entAAI));
+                            eList.Add(entAAI);
                         }
                     }
-                    else
+                }
+                else
+                {
+                    if(attribute.IsValidForRead == null ? false : attribute.IsValidForRead.Value)
                     {
                         eList.Add(entAAI);
                     }
                 }
             }
 
-            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTIntegerField(entity.LogicalName, "Source_System_Id", true));
-            eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_DMTIntegerField(entity.LogicalName, "Processing_Status", true));
+            if (!getRawCRMFields)
+            {
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entity.LogicalName, "Source_System_Id", true));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entity.LogicalName, "Processing_Status", true));
+            }
 
-            if (includeStagingFields)
+            if (includeAdditionalStagingFields)
             {
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagCreate"));
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgBoolean(entity.LogicalName, "FlagUpdate"));
@@ -210,10 +252,10 @@ namespace DynamicsMigrationTool
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynCreateId"));
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynUpdateId"));
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynDeleteId"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynId"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateCreate"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateUpdate"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgDateTime(entity.LogicalName, "DateDelete"));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_UniqueIdentifier(entity.LogicalName, "DynId"));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateCreate"));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateUpdate"));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateDelete"));
             }
 
             return eList;
