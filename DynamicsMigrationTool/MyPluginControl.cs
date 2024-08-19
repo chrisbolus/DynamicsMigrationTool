@@ -30,6 +30,7 @@ namespace DynamicsMigrationTool
     {
         private Settings mySettings;
         private SourceToStagingGeneration sourceToStagingGeneration;
+        private CRMToStagingGeneration crmToStagingGeneration;
 
         public MyPluginControl()
         {
@@ -56,13 +57,16 @@ namespace DynamicsMigrationTool
                 {
                     SetEntityList();
                     sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
+                    crmToStagingGeneration = new CRMToStagingGeneration(Service, mySettings);
                 }
 
                 sourceDBSchema_txtb.Text = mySettings.SourceDBSchema;
                 stagingDBSchema_txtb.Text = mySettings.StagingDBSchema;
+                stagingDBImportSchema_txtb.Text = mySettings.ImportSchema;
                 sourceDBConnection_txtb.Text = mySettings.SourceDBConnectionString;
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
                 sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
+                crmToStagingLocation_txtb.Text = mySettings.CRMToStagingLocationString;
 
                 //detatching and then reattaching the checkchanged so we can set the tickbox without a popup message.
                 dataTransforms_chbx.CheckedChanged -= dataTransforms_chbx_CheckedChanged;
@@ -126,13 +130,22 @@ namespace DynamicsMigrationTool
             SetEntityList();
 
 
-            if(sourceToStagingGeneration != null)
+            if (sourceToStagingGeneration != null)
             {
                 sourceToStagingGeneration.UpdateService(newService);
             }
-            else 
+            else
             {
                 sourceToStagingGeneration = new SourceToStagingGeneration(newService, mySettings);
+            }
+
+            if (crmToStagingGeneration != null)
+            {
+                crmToStagingGeneration.UpdateService(newService);
+            }
+            else
+            {
+                crmToStagingGeneration = new CRMToStagingGeneration(newService, mySettings);
             }
         }
 
@@ -341,7 +354,7 @@ namespace DynamicsMigrationTool
 
         public void CreateTemplateSourceView(SqlConnection connection, EntityMetadata entity)
         {
-            var fieldList = CRMHelper.GetFullFieldList(Service, entity);
+            var fieldList = CRMHelper.GetFullFieldList(Service, entity.LogicalName);
             var isFirstColumn = true;
 
             using (var command = connection.CreateCommand())
@@ -435,7 +448,7 @@ SELECT
 
         public void CreateStagingTable(SqlConnection connection, EntityMetadata entity)
         {
-            var fieldList = CRMHelper.GetFullFieldList(Service, entity, true);
+            var fieldList = CRMHelper.GetFullFieldList(Service, entity.LogicalName, true);
 
             using (var command = connection.CreateCommand())
             {
@@ -545,13 +558,26 @@ SELECT
             SettingsManager.Instance.Save(GetType(), mySettings);
 
             if (sourceToStagingGeneration != null)
-            if (sourceToStagingGeneration != null)
             {
                 sourceToStagingGeneration.UpdateSettings(mySettings);
             }
             else
             {
                 sourceToStagingGeneration = new SourceToStagingGeneration(Service, mySettings);
+            }
+        }
+        private void crmToStagingLocation_txtb_TextChanged(object sender, EventArgs e)
+        {
+            mySettings.CRMToStagingLocationString = crmToStagingLocation_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+
+            if (crmToStagingGeneration != null)
+            {
+                crmToStagingGeneration.UpdateSettings(mySettings);
+            }
+            else
+            {
+                crmToStagingGeneration = new CRMToStagingGeneration(Service, mySettings);
             }
         }
 
@@ -617,17 +643,49 @@ SELECT
                     }
                     else
                     {
-                        MessageBox.Show("Please populate Staging DB Schema");
+                        MessageBox.Show("Please populate Staging DB Schema.");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Please populate Source DB Schema");
+                    MessageBox.Show("Please populate Source DB Schema.");
                 }
             }
             else
             {
-                MessageBox.Show("Please populate Source To Staging SSIS Project Location");
+                MessageBox.Show("Please populate Source To Staging SSIS Project Location.");
+            }
+
+            Cursor = System.Windows.Forms.Cursors.Arrow;
+        }
+
+
+
+        private void createCRMToStagingPackage_btn_Click(object sender, EventArgs e)
+        {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            if (!mySettings.CRMToStagingLocationString.IsNullOrEmpty())
+            {
+                if (!mySettings.ImportSchema.IsNullOrEmpty())
+                {
+                    ExecuteMethod(TestConnection);
+
+                    if (IsEntitySelected())
+                    {
+                        var entityMetadata_noattr = (EntityMetadata)EntityCmb.SelectedItem;
+
+                        crmToStagingGeneration.CreatePackage(entityMetadata_noattr.LogicalName);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Please populate Staging DB Import Schema.");
+                }                
+            }
+            else
+            {
+                MessageBox.Show("Please populate Source To Staging SSIS Project Location.");
             }
 
             Cursor = System.Windows.Forms.Cursors.Arrow;
@@ -644,6 +702,12 @@ SELECT
         {
 
             mySettings.StagingDBSchema = stagingDBSchema_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+        }
+
+        private void stagingDBImportSchema_txtb_TextChanged(object sender, EventArgs e)
+        {
+            mySettings.ImportSchema = stagingDBImportSchema_txtb.Text;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
 
@@ -713,5 +777,6 @@ SELECT
             mySettings.UseDataTransforms = dataTransforms_chbx.Checked;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
+
     }
 }

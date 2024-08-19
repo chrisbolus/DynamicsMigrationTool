@@ -16,6 +16,7 @@ namespace DynamicsMigrationTool
         public string DBDataType;
         public bool stgNotNull = false;
         public string SSISDataType;
+        public string SSISDataType_Staging;
         public int? StringLength = null;
         public bool isValidForMigration = true;
         public bool isLookup = false;
@@ -35,7 +36,7 @@ namespace DynamicsMigrationTool
         /// </summary>
         /// <param name="EntityName"></param>
         /// <param name="FieldName"></param>
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTIntegerField(string EntityName, string FieldName, bool useNotNull = false)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_IntegerField(string EntityName, string FieldName, bool useNotNull = false)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -53,7 +54,7 @@ namespace DynamicsMigrationTool
             return EAAI;
         }
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTSourceField(EntityAttribute_AdditionalInfo EAAI_Existing)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_SourceField(EntityAttribute_AdditionalInfo EAAI_Existing)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -74,7 +75,7 @@ namespace DynamicsMigrationTool
         }
 
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTLookupTypeField(EntityAttribute_AdditionalInfo EAAI_Existing)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_LookupTypeField(EntityAttribute_AdditionalInfo EAAI_Existing)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -94,7 +95,7 @@ namespace DynamicsMigrationTool
         }
 
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTDynamicsLookupFields(EntityAttribute_AdditionalInfo EAAI_Existing)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_DynamicsLookupFields(EntityAttribute_AdditionalInfo EAAI_Existing)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -114,7 +115,7 @@ namespace DynamicsMigrationTool
         }
 
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_DMTLeaderField(EntityAttribute_AdditionalInfo EAAI_Existing)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_LeaderField(EntityAttribute_AdditionalInfo EAAI_Existing)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -133,7 +134,7 @@ namespace DynamicsMigrationTool
             return EAAI;
         }
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_StgUniqueIdentifier(string EntityName, string FieldName)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_UniqueIdentifier(string EntityName, string FieldName)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 
@@ -145,7 +146,7 @@ namespace DynamicsMigrationTool
             return EAAI;
         }
 
-        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_StgDateTime(string EntityName, string FieldName)
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_DateTime(string EntityName, string FieldName)
         {
             var EAAI = new EntityAttribute_AdditionalInfo();
 

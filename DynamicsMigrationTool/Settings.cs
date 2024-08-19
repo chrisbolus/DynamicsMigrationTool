@@ -17,9 +17,11 @@ namespace DynamicsMigrationTool
         public string LastUsedOrganizationWebappUrl { get; set; }
         public string StagingDBConnectionString { get; set; }
         public string StagingDBSchema { get; set; }
+        public string ImportSchema { get; set; }
         public string SourceDBConnectionString { get; set; }
         public string SourceDBSchema { get; set; }
         public string SourceToStagingLocationString { get; set; }
+        public string CRMToStagingLocationString { get; set; }
         public bool UseDataTransforms { get; set; }
     }
 }
