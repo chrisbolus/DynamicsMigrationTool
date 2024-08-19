@@ -79,6 +79,9 @@ namespace DynamicsMigrationTool
 
         public void GenerateXML_SSISPackageBase(XDocument package, string entityName)
         {
+            var loggingGuid = GenerateNewXMLGuid();
+            var loggingDB = "StagingDB";
+
             package.Add(new XElement(DTS + "Executable",
                             new XAttribute(XNamespace.Xmlns + "DTS", DTS.ToString()),
                             new XAttribute(DTS + "ObjectName", entityName),
@@ -91,12 +94,73 @@ namespace DynamicsMigrationTool
                             new XElement(DTS + "Property", "8",
                                 new XAttribute(DTS + "Name", "PackageFormatVersion")
                             ),
+                            new XElement(DTS + "LogProviders",
+                                new XElement(DTS + "LogProvider",
+                                new XAttribute(DTS + "ConfigString", GetConmgr(ssisProjectLocation, loggingDB).ObjectName),
+                                new XAttribute(DTS + "CreationName", "Microsoft.LogProviderSQLServer"),
+                                new XAttribute(DTS + "Description", "Writes log entries for events to a SQL Server database"),
+                                new XAttribute(DTS + "DTSID", loggingGuid),
+                                new XAttribute(DTS + "ObjectName", "SSIS log provider for SQL Server"),
+                                new XElement(DTS + "ObjectData",
+                                    new XElement("InnerObject") // InnerObject element
+                                ))
+                            ),
+                            new XElement(DTS + "LoggingOptions",
+                                new XAttribute(DTS + "FilterKind", "0"),
+                                new XAttribute(DTS + "LoggingMode", "1"),
+                                new XElement(DTS + "Property",
+                                    new XAttribute(DTS + "DataType", "8"),
+                                    new XAttribute(DTS + "Name", "EventFilter"),
+                                    "5,7,OnError,13,OnPostExecute,12,OnPreExecute,13,OnQueryCancel,12,OnTaskFailed"
+                                ),
+                                CreateColumnFilter(DTS, "OnError"),
+                                CreateColumnFilter(DTS, "OnPostExecute"),
+                                CreateColumnFilter(DTS, "OnPreExecute"),
+                                CreateColumnFilter(DTS, "OnQueryCancel"),
+                                CreateColumnFilter(DTS, "OnTaskFailed"),
+                                new XElement(DTS + "SelectedLogProviders",
+                                    new XElement(DTS + "SelectedLogProvider",
+                                        new XAttribute(DTS + "InstanceID", loggingGuid)
+                                ))
+                            ),
                             new XElement(DTS + "Variables"),
                             new XElement(DTS + "Executables"),
                             new XElement(DTS + "PrecedenceConstraints")
                             ));
+
+
+
         }
 
+
+        static XElement CreateColumnFilter(XNamespace DTS, string eventName)
+        {
+            return new XElement(DTS + "Property",
+                new XAttribute(DTS + "EventName", eventName),
+                new XAttribute(DTS + "Name", "ColumnFilter"),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "Computer"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "Operator"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "SourceName"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "SourceID"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "ExecutionID"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "MessageText"), "-1"
+                ),
+                new XElement(DTS + "Property",
+                    new XAttribute(DTS + "Name", "DataBytes"), "-1"
+                )
+            );
+        }
 
         public void GenerateXML_Executable_SQLTask_DropAndCreateTable(XDocument package, string entityName, string schemaName, string SQLConnection, List<EntityAttribute_AdditionalInfo> EntAAIList)
         {
@@ -136,6 +200,8 @@ namespace DynamicsMigrationTool
                 new XAttribute(DTS + "LocaleID", "-1"),
                 new XAttribute(DTS + "ThreadHint", "0"),
                 new XElement(DTS + "Variables"),
+                new XElement(DTS + "LoggingOptions",
+                    new XAttribute("FilterKind", "0")),
                 new XElement(DTS + "ObjectData",
                     new XElement(sqlTask + "SqlTaskData",
                         new XAttribute(XNamespace.Xmlns + "sqlTask", sqlTask.ToString()),
@@ -722,6 +788,8 @@ namespace DynamicsMigrationTool
                                 new XAttribute(DTS + "CreationName", "Microsoft.Pipeline"),
                                 new XAttribute(DTS + "ExecutableType", "Microsoft.Pipeline"),
                                 new XAttribute(DTS + "LocaleID", "-1"),
+                                new XElement(DTS + "LoggingOptions",
+                                    new XAttribute("FilterKind", "0")),
                                 new XElement(DTS + "ObjectData",
                                     new XElement("pipeline",
                                         new XAttribute("version", "1"),
