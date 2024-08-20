@@ -52,10 +52,8 @@ namespace DynamicsMigrationTool
             }
             else if (attribute.AttributeType == AttributeTypeCode.Boolean)
             {
-                EntAAI.DBDataType = "NVARCHAR(255)";
-                EntAAI.SSISDataType_Staging = "wstr";
+                EntAAI.DBDataType = "bit";
                 EntAAI.SSISDataType = "bool";
-                EntAAI.StringLength = 255;
             }
             else if (attribute.AttributeType == AttributeTypeCode.Customer
                 || attribute.AttributeType == AttributeTypeCode.Lookup
