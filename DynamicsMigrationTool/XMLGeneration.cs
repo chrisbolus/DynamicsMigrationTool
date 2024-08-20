@@ -626,7 +626,7 @@ namespace DynamicsMigrationTool
                     new XAttribute("description", "Dynamics CRM entity to retrieve data from."),
                     new XAttribute("expressionType", "Notify"),
                     new XAttribute("name", "SourceEntity"),
-                    "account"),
+                    entityName),
                 new XElement("property",
                     new XAttribute("dataType", "System.String"),
                     new XAttribute("description", "FetchXML statement."),

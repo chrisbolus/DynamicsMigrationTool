@@ -52,7 +52,7 @@ namespace DynamicsMigrationTool
             }
             else if (attribute.AttributeType == AttributeTypeCode.Boolean)
             {
-                EntAAI.DBDataType = "bit";
+                EntAAI.DBDataType = "BIT";
                 EntAAI.SSISDataType = "bool";
             }
             else if (attribute.AttributeType == AttributeTypeCode.Customer
