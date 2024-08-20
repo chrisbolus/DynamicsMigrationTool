@@ -743,6 +743,8 @@ SELECT
                                 $"CREATE TABLE [dmt].[DataTransforms](\n" +
                                 $"[EntityName] [nvarchar](100) NOT NULL,[FieldName] [nvarchar](100) NOT NULL,[ValueIn] [nvarchar](255) NOT NULL,[ValueOut] [nvarchar](255) NULL,\n " +
                                 $"CONSTRAINT [PK_DMT_DataTransforms] PRIMARY KEY CLUSTERED ([EntityName] ASC,[FieldName] ASC,[ValueIn] ASC) ON [PRIMARY])", stagingDBConnection).ExecuteNonQuery();
+
+                            MessageBox.Show("[dmt].[DataTransforms] created in staging database.");
                         }
                         catch (Exception ex)
                         {
@@ -753,6 +755,8 @@ SELECT
                         try
                         {
                             new SqlCommand($"CREATE OR ALTER PROCEDURE [dmt].[SP_RunDataTransforms]\r\n@SchemaName VARCHAR (100), @EntityName VARCHAR (100), @FieldName VARCHAR (100) = NULL\r\nAS\r\nBEGIN\r\n\r\n        DECLARE @DTEntityName VARCHAR(100)\r\n        DECLARE @DTFieldName VARCHAR(100)\r\n        DECLARE @strsql VARCHAR(MAX)\r\n\r\n        DECLARE curs CURSOR FOR \r\n\t\t\tSELECT DISTINCT EntityName, FieldName\r\n\t\t\tFROM dmt.DataTransforms\r\n\t\t\tWHERE EntityName = @EntityName AND FieldName = ISNULL(@FieldName, FieldName)\r\n\r\n        OPEN  curs\r\n\r\n        FETCH NEXT FROM curs INTO @DTEntityName, @DTFieldName\r\n\r\n        WHILE @@FETCH_STATUS = 0 \r\n            BEGIN\r\n\t\t\t\tSET @strsql = \t\t\t\t\r\n'UPDATE e \r\nSET e.[' + @DTFieldName + '] = t.ValueOut \r\nFROM [' + @SchemaName + '].[' + @DTEntityName + '] AS e\r\nINNER JOIN [dmt].[DataTransforms] AS t ON ISNULL(CAST(e.[' + @DTFieldName + '] AS NVARCHAR(255)), N''NULL'') = t.ValueIn COLLATE DATABASE_DEFAULT\r\nWHERE t.entityname = ''' + @DTEntityName + ''' \r\nAND t.fieldname = ''' + @DTFieldName + ''''\r\n                EXEC(@strsql)\r\n                FETCH NEXT FROM curs INTO @DTEntityName, @DTFieldName\r\n            END\r\n        CLOSE curs\r\n        DEALLOCATE curs\r\n    END\r\n", stagingDBConnection).ExecuteNonQuery();
+
+                            MessageBox.Show("[dmt].[SP_RunDataTransforms] created in staging database.");
                         }
                         catch (Exception ex)
                         {
