@@ -26,6 +26,7 @@ namespace DynamicsMigrationTool
         public int? DynEntityLookupTargets_Count = null;
         public string DynEntityLookupTargets_List;
         public string DynDataType_Readable;
+        public string SSISLineage;
 
         public EntityAttribute_AdditionalInfo() { }
 
@@ -154,6 +155,19 @@ namespace DynamicsMigrationTool
             EAAI.entityName = EntityName;
             EAAI.DBDataType = "DATETIME";
             EAAI.SSISDataType = "dbTimeStamp";
+
+            return EAAI;
+        }
+
+        public static EntityAttribute_AdditionalInfo EntityAttribute_AdditionalInfo_Staging_String(string EntityName, string FieldName, int length)
+        {
+            var EAAI = new EntityAttribute_AdditionalInfo();
+
+            EAAI.fieldName = FieldName;
+            EAAI.entityName = EntityName;
+            EAAI.DBDataType = $"nvarchar({length})";
+            EAAI.SSISDataType = "wstr";
+            EAAI.StringLength = length;
 
             return EAAI;
         }

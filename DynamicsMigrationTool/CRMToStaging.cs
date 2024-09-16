@@ -66,7 +66,7 @@ namespace DynamicsMigrationTool
 
                     //gen dataflow
                     XMLGen.GenerateXML_Executable_DataFlow_Base(package, entityName, dataFlowTaskName);
-                    GenerateXML_Executable_DataFlow_StagingToCRM(package, entityName, dataFlowTaskName);
+                    GenerateXML_Executable_DataFlow_CRMToStaging(package, entityName, dataFlowTaskName);
 
 
 
@@ -103,7 +103,7 @@ namespace DynamicsMigrationTool
 
 
 
-        private void GenerateXML_Executable_DataFlow_StagingToCRM(XDocument package, string entityName, string dataFlowTaskName)
+        private void GenerateXML_Executable_DataFlow_CRMToStaging(XDocument package, string entityName, string dataFlowTaskName)
         {
             var sourceFields = CRMHelper.GetFullFieldList(Service, entityName, false, true);
 
@@ -111,8 +111,16 @@ namespace DynamicsMigrationTool
 
             var components = executable.Element(DTS + "ObjectData").Element("pipeline").Element("components");
 
-            XMLGen.GenerateXML_DataFlow_Component_CRMSource(components, entityName, dataFlowTaskName, sourceFields, "Dynamics");
-            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, mySettings.ImportSchema, dataFlowTaskName, sourceFields, sourceFields, "StagingDB", "Dynamics CRM Source");
+            var CRMSource_Name = $"Dynamics - {entityName}";
+            var OLEDBDestination_Name = $"DB - {{{mySettings.ImportSchema}}}{{{entityName}}}";
+
+            foreach (var entAAI in sourceFields)
+            {
+                entAAI.SSISLineage = CRMSource_Name;
+            }
+
+            XMLGen.GenerateXML_DataFlow_Component_CRMSource(components, entityName, dataFlowTaskName, sourceFields, "Dynamics", CRMSource_Name);
+            XMLGen.GenerateXML_DataFlow_Component_OLEDBDestination(components, entityName, mySettings.ImportSchema, dataFlowTaskName, sourceFields, sourceFields, "StagingDB", OLEDBDestination_Name);
 
             var component_OLEDBDestination = components.Elements("component").Where(x => x.Attribute("componentClassID").Value == "Microsoft.OLEDBDestination").FirstOrDefault();
 
@@ -122,14 +130,7 @@ namespace DynamicsMigrationTool
 
             var pathStringBase = "Package\\" + dataFlowTaskName;
 
-            paths.Add(new XElement("path",
-                            new XAttribute("refId", pathStringBase + ".Paths[Dynamics CRM Source Output]"),
-                            new XAttribute("name", "Dynamics CRM Source Output"),
-                            new XAttribute("startId", pathStringBase + "\\Dynamics CRM Source.Outputs[Dynamics CRM Source Output]"),
-                            new XAttribute("endId", pathStringBase + "\\OLE DB Destination.Inputs[OLE DB Destination Input]")
-                            ));
-
-
+            XMLGen.GenerateXML_DataFlow_path(paths, pathStringBase, CRMSource_Name, OLEDBDestination_Name);
         }
 
     }

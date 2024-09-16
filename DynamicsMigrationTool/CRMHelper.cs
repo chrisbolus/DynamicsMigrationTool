@@ -98,9 +98,20 @@ namespace DynamicsMigrationTool
             }
             else if (attribute.AttributeType == AttributeTypeCode.Memo)
             {
-                EntAAI.DBDataType = "NVARCHAR(MAX)";
-                EntAAI.SSISDataType = "nText";
-                EntAAI.StringLength = -1;
+                var strlength = (int)attribute.GetType().GetProperty("MaxLength").GetValue(attribute);
+                EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + $"({strlength})";
+                if (strlength > 4000)
+                {
+                    EntAAI.DBDataType = "NVARCHAR(MAX)";
+                    EntAAI.SSISDataType = "nText";
+                    EntAAI.StringLength = -1;
+                }
+                else
+                {
+                    EntAAI.DBDataType = $"NVARCHAR({strlength})";
+                    EntAAI.SSISDataType = "wstr";
+                    EntAAI.StringLength = strlength;
+                }
             }
             else if (attribute.AttributeType == AttributeTypeCode.Money)
             {
@@ -186,6 +197,14 @@ namespace DynamicsMigrationTool
             else return null;
         }
 
+
+        public static string GetEntityPK(IOrganizationService Service, string entityName)
+        {
+            var entity = Service.GetEntityMetadata(entityName);
+
+            return entity.PrimaryIdAttribute;
+        }
+
         public static List<EntityAttribute_AdditionalInfo> GetFullFieldList(IOrganizationService Service, string entityName, bool includeAdditionalStagingFields = false, bool getRawCRMFields = false)
         {
             var entity = Service.GetEntityMetadata(entityName);
@@ -240,6 +259,12 @@ namespace DynamicsMigrationTool
             {
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entity.LogicalName, "Source_System_Id", true));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entity.LogicalName, "Processing_Status", true));
+                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_UniqueIdentifier(entity.LogicalName, "DynId"));
+
+                if (!includeAdditionalStagingFields)
+                {
+                    eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entity.LogicalName, "ErrorDetails", 4000));
+                }
             }
 
             if (includeAdditionalStagingFields)
@@ -250,7 +275,6 @@ namespace DynamicsMigrationTool
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynCreateId"));
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynUpdateId"));
                 //eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_StgUniqueIdentifier(entity.LogicalName, "DynDeleteId"));
-                eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_UniqueIdentifier(entity.LogicalName, "DynId"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateCreate"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateUpdate"));
                 eList.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entity.LogicalName, "DateDelete"));

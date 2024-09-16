@@ -232,14 +232,14 @@ namespace DynamicsMigrationTool
         }
 
 
-        public void GenerateXML_DataFlow_Component_OLEDBSource(XElement components, string entityName, string schemaName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, string conmgrName)
+        public void GenerateXML_DataFlow_Component_OLEDBSource(XElement components, string entityName, string schemaName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, string conmgrName, string OLEDBSource_Name)
         {
-            var path = $"Package\\{dataFlowTaskName}\\OLE DB Source";
+            var path = $"Package\\{dataFlowTaskName}\\{OLEDBSource_Name}";
 
             var component = new XElement("component",
                                 new XAttribute("refId", path),
                                 new XAttribute("componentClassID", "Microsoft.OLEDBSource"),
-                                new XAttribute("name", "OLE DB Source"),
+                                new XAttribute("name", OLEDBSource_Name),
                                 new XAttribute("usesDispositions", "true"),
                                 new XAttribute("version", "7")
             );
@@ -248,18 +248,18 @@ namespace DynamicsMigrationTool
 
             GenerateXML_DataFlow_Component_OLEDB_Properties(component, entityName, schemaName);
             GenerateXML_DataFlow_Component_Connections(component, "OleDbConnection", path, conmgrName);
-            GenerateXML_DataFlow_Component_OLEDBSource_Output(component, entityName, dataFlowTaskName, SourceFields);
+            GenerateXML_DataFlow_Component_OLEDBSource_Output(component, entityName, dataFlowTaskName, SourceFields, OLEDBSource_Name);
         }
 
 
-        public void GenerateXML_DataFlow_Component_OLEDBDestination(XElement components, string entityName, string schemaName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string conmgrName, string sourceName)
+        public void GenerateXML_DataFlow_Component_OLEDBDestination(XElement components, string entityName, string schemaName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string conmgrName, string OLEDBDestination_Name)
         {
-            var path = $"Package\\{dataFlowTaskName}\\OLE DB Destination";
+            var path = $"Package\\{dataFlowTaskName}\\{OLEDBDestination_Name}";
 
             var component = new XElement("component",
                                 new XAttribute("refId", path),
                                 new XAttribute("componentClassID", "Microsoft.OLEDBDestination"),
-                                new XAttribute("name", "OLE DB Destination"),
+                                new XAttribute("name", OLEDBDestination_Name),
                                 new XAttribute("usesDispositions", "true"),
                                 new XAttribute("version", "4")
             );
@@ -268,29 +268,29 @@ namespace DynamicsMigrationTool
 
             GenerateXML_DataFlow_Component_OLEDB_Properties(component, entityName, schemaName);
             GenerateXML_DataFlow_Component_Connections(component, "OleDbConnection", path, conmgrName);
-            GenerateXML_DataFlow_Component_OLEDBDestination_Input(component, entityName, dataFlowTaskName, SourceFields, DestinationFields, sourceName);
-            GenerateXML_DataFlow_Component_OLEDBDestination_Output(component, entityName, dataFlowTaskName);
+            GenerateXML_DataFlow_Component_OLEDBDestination_Input(component, dataFlowTaskName, SourceFields, DestinationFields, OLEDBDestination_Name);
+            GenerateXML_DataFlow_Component_OLEDBDestination_Output(component, dataFlowTaskName, OLEDBDestination_Name);
         }
 
 
 
-        private void GenerateXML_DataFlow_Component_OLEDBSource_Output(XElement component, string entityName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields)
+        private void GenerateXML_DataFlow_Component_OLEDBSource_Output(XElement component, string entityName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, string OLEDBSource_Name)
         {
             var outputs = new XElement("outputs");
             component.Add(outputs);
 
-            var data_path = $"Package\\{dataFlowTaskName}\\OLE DB Source.Outputs[OLE DB Source Output]";
-            var error_path = $"Package\\{dataFlowTaskName}\\OLE DB Source.Outputs[OLE DB Source Error Output]";
+            var data_path = $"Package\\{dataFlowTaskName}\\{OLEDBSource_Name}.Outputs[{OLEDBSource_Name} Output]";
+            var error_path = $"Package\\{dataFlowTaskName}\\{OLEDBSource_Name}.Outputs[{OLEDBSource_Name} Error Output]";
 
 
             var data_Output = new XElement("output",
                                     new XAttribute("refId", data_path),
-                                    new XAttribute("name", "OLE DB Source Output"));
+                                    new XAttribute("name", $"{OLEDBSource_Name} Output"));
 
             var error_Output = new XElement("output",
                                     new XAttribute("refId", error_path),
                                     new XAttribute("isErrorOut", "true"),
-                                    new XAttribute("name", "OLE DB Source Error Output"));
+                                    new XAttribute("name", $"{OLEDBSource_Name} Error Output"));
 
             outputs.Add(data_Output);
             outputs.Add(error_Output);
@@ -393,13 +393,12 @@ namespace DynamicsMigrationTool
             data_ExternalMetadataColumns.Add(externalMetadataColumn);
         }
 
-        private void GenerateXML_DataFlow_Component_OLEDBDestination_Input(XElement component, string entityName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string SourceName)
+        private void GenerateXML_DataFlow_Component_OLEDBDestination_Input(XElement component, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> SourceFields, List<EntityAttribute_AdditionalInfo> DestinationFields, string OLEDBDestination_Name)
         {
             var inputs = new XElement("inputs");
             component.Add(inputs);
 
-            var data_path = $"Package\\{dataFlowTaskName}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
-            var lineage_path = $"Package\\{dataFlowTaskName}\\{SourceName}.Outputs[{SourceName} Output]";
+            var data_path = $"Package\\{dataFlowTaskName}\\{OLEDBDestination_Name}.Inputs[{OLEDBDestination_Name} Input]";
 
 
 
@@ -408,7 +407,7 @@ namespace DynamicsMigrationTool
                                     new XAttribute("errorOrTruncationOperation", "Insert"),
                                     new XAttribute("errorRowDisposition", "FailComponent"),
                                     new XAttribute("hasSideEffects", "true"),
-                                    new XAttribute("name", "OLE DB Destination Input"));
+                                    new XAttribute("name", $"{OLEDBDestination_Name} Input"));
 
             inputs.Add(data_Input);
 
@@ -421,6 +420,9 @@ namespace DynamicsMigrationTool
 
             foreach (var EntAAI in SourceFields)
             {
+
+                var lineage_path = $"Package\\{dataFlowTaskName}\\{EntAAI.SSISLineage}.Outputs[{EntAAI.SSISLineage} Output]";
+
                 GenerateXML_DataFlow_Component_InputColumn(data_InputColumns, EntAAI, data_path, lineage_path);
             }
 
@@ -440,17 +442,17 @@ namespace DynamicsMigrationTool
             data_Input.Add(data_InputColumns);
             data_Input.Add(data_ExternalMetadataColumns);
         }
-        private void GenerateXML_DataFlow_Component_OLEDBDestination_Output(XElement component, string entityName, string dataFlowTaskName)
+        private void GenerateXML_DataFlow_Component_OLEDBDestination_Output(XElement component, string dataFlowTaskName, string OLEDBDestination_Name)
         {
-            var path = $"Package\\{dataFlowTaskName}\\OLE DB Destination.Outputs[OLE DB Destination Error Output]";
-            var input_path = $"Package\\{dataFlowTaskName}\\OLE DB Destination.Inputs[OLE DB Destination Input]";
+            var path = $"Package\\{dataFlowTaskName}\\{OLEDBDestination_Name}.Outputs[{OLEDBDestination_Name} Error Output]";
+            var input_path = $"Package\\{dataFlowTaskName}\\{OLEDBDestination_Name}.Inputs[{OLEDBDestination_Name} Input]";
 
             XElement outputs = new XElement("outputs",
                 new XElement("output",
                     new XAttribute("refId", path),
                     new XAttribute("exclusionGroup", "1"),
                     new XAttribute("isErrorOut", "true"),
-                    new XAttribute("name", "OLE DB Destination Error Output"),
+                    new XAttribute("name", $"{OLEDBDestination_Name} Error Output"),
                     new XAttribute("synchronousInputId", input_path),
                     new XElement("outputColumns"),
                     new XElement("externalMetadataColumns")
@@ -664,6 +666,31 @@ namespace DynamicsMigrationTool
             component.Add(properties);
         }
 
+
+        public void GenerateXML_DataFlow_path(XElement paths, string path, string sourceName, string targetName, int? sourceOutputNumber = null, int? targetInputNumber = null)
+        {
+            var targetInputNumberString = "";
+            var outputNumberString = "";
+
+            if (targetInputNumber != null)
+            {
+                targetInputNumberString = " " + targetInputNumber.ToString();
+            }
+
+            if (sourceOutputNumber != null)
+            {
+                outputNumberString = " " + sourceOutputNumber.ToString();
+            }
+
+            paths.Add(new XElement("path",
+                            new XAttribute("refId", $"{path}.Paths[{sourceName} Output{outputNumberString}]"),
+                            new XAttribute("name", $"{sourceName} Output{outputNumberString}"),
+                            new XAttribute("startId", $"{path}\\{sourceName}.Outputs[{sourceName} Output{outputNumberString}]"),
+                            new XAttribute("endId", $"{path}\\{targetName}.Inputs[{targetName} Input{targetInputNumberString}]")
+                            ));
+        }
+
+
         /// <summary>
         /// This is used to link DTS:Executable>>DTS:Executables in the ControlFlow level of the SSIS package as opposed to the DataFlow level.
         /// </summary>
@@ -803,17 +830,17 @@ namespace DynamicsMigrationTool
 
 
 
-        internal void GenerateXML_DataFlow_Component_CRMSource(XElement components, string entityName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> crmFields, string conmgrName)
+        internal void GenerateXML_DataFlow_Component_CRMSource(XElement components, string entityName, string dataFlowTaskName, List<EntityAttribute_AdditionalInfo> crmFields, string conmgrName, string CRMSource_Name)
         {
 
-            var path = $"Package\\{dataFlowTaskName}\\Dynamics CRM Source";
+            var path = $"Package\\{dataFlowTaskName}\\{CRMSource_Name}";
 
 
             XElement component = new XElement("component",
                 new XAttribute("refId", path),
                 new XAttribute("componentClassID", "Microsoft.ManagedComponentHost"),
                 new XAttribute("description", "Extract data from Microsoft Dynamics 365 CE/CRM."),
-                new XAttribute("name", "Dynamics CRM Source"),
+                new XAttribute("name", CRMSource_Name),
                 new XAttribute("usesDispositions", "true"),
                 new XAttribute("version", "3")                
             );
@@ -822,10 +849,10 @@ namespace DynamicsMigrationTool
 
             GenerateXML_DataFlow_Component_CRMSource_Properties(component, entityName);
             GenerateXML_DataFlow_Component_Connections(component, "DynamicsCRM", path, conmgrName);
-            GenerateXML_DataFlow_Component_CRMSource_Output(component, entityName, path, crmFields);
+            GenerateXML_DataFlow_Component_CRMSource_Output(component, entityName, path, crmFields, CRMSource_Name);
         }
 
-        private void GenerateXML_DataFlow_Component_CRMSource_Output(XElement component, string entityName, string path, List<EntityAttribute_AdditionalInfo> crmFields)
+        private void GenerateXML_DataFlow_Component_CRMSource_Output(XElement component, string entityName, string path, List<EntityAttribute_AdditionalInfo> crmFields, string CRMSource_Name)
         {
             var outputs = new XElement("outputs"
                             );
@@ -834,11 +861,13 @@ namespace DynamicsMigrationTool
 
 
             var output = new XElement("output",
-                                new XAttribute("refId", $"{path}.Outputs[Dynamics CRM Source Output]"),
-                                new XAttribute("name", "Dynamics CRM Source Output")
+                                new XAttribute("refId", $"{path}.Outputs[{CRMSource_Name} Output]"),
+                                new XAttribute("name", $"{CRMSource_Name} Output")
                             );
 
             outputs.Add(output);
+
+            path = $"{path}.Outputs[{CRMSource_Name} Output]";
 
             var outputColumns = new XElement("outputColumns");
             var externalMetadataColumns = new XElement("externalMetadataColumns", new XAttribute("isUsed", "True"));
@@ -847,40 +876,11 @@ namespace DynamicsMigrationTool
 
             foreach (var field in crmFields)
             {
-                var externalMetadataColumn = new XElement("externalMetadataColumn",
-                        new XAttribute("refId", $"{path}.Outputs[Dynamics CRM Source Output].ExternalColumns[{field.fieldName}]"),
-                        new XAttribute("dataType", field.SSISDataType),
-                        new XAttribute("name", field.fieldName)
-                );
 
-                externalMetadataColumns.Add(externalMetadataColumn);     
+                GenerateXML_DataFlow_Component_OutputColumn(outputColumns, field, path);
+                GenerateXML_DataFlow_Component_externalMetadataColumn(externalMetadataColumns, field, path);
 
-                var outputColumn = new XElement("outputColumn",
-                        new XAttribute("refId", $"{path}.Outputs[Dynamics CRM Source Output].Columns[{field.fieldName}]"),
-                        new XAttribute("lineageId", $"{path}.Outputs[Dynamics CRM Source Output].Columns[{field.fieldName}]"),
-                        new XAttribute("externalMetadataColumnId", $"{path}.Outputs[Dynamics CRM Source Output].ExternalColumns[{field.fieldName}]"),
-                        new XAttribute("dataType", field.SSISDataType),
-                        new XAttribute("errorOrTruncationOperation", "Conversion"),
-                        new XAttribute("errorRowDisposition", "FailComponent"),
-                        new XAttribute("name", field.fieldName),
-                        new XAttribute("truncationRowDisposition", "FailComponent")
-                    
-                );
 
-                outputColumns.Add(outputColumn);
-
-                if (field.SSISDataType == "wstr")
-                {
-                    externalMetadataColumn.Add(new XAttribute("length", field.StringLength));
-                    outputColumn.Add(new XAttribute("length", field.StringLength));
-                }
-                if (field.SSISDataType == "numeric")
-                {
-                    externalMetadataColumn.Add(new XAttribute("precision", "23"));
-                    outputColumn.Add(new XAttribute("precision", "23"));
-                    externalMetadataColumn.Add(new XAttribute("scale", "10"));
-                    outputColumn.Add(new XAttribute("scale", "10"));
-                }
             }
         }
     }
