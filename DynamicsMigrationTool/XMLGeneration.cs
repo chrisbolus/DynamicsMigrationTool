@@ -4,6 +4,8 @@ using Microsoft.Xrm.Sdk.Extensions;
 using ScintillaNET;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -77,14 +79,14 @@ namespace DynamicsMigrationTool
             return conmgr;
         }
 
-        public void GenerateXML_SSISPackageBase(XDocument package, string entityName)
+        public void GenerateXML_SSISPackageBase(XDocument package, string packageName)
         {
             var loggingGuid = GenerateNewXMLGuid();
             var loggingDB = "StagingDB";
 
             package.Add(new XElement(DTS + "Executable",
                             new XAttribute(XNamespace.Xmlns + "DTS", DTS.ToString()),
-                            new XAttribute(DTS + "ObjectName", entityName),
+                            new XAttribute(DTS + "ObjectName", packageName),
                             new XAttribute(DTS + "refId", "Package"),
                             new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
                             new XAttribute(DTS + "ExecutableType", "Microsoft.Package"),
@@ -691,38 +693,76 @@ namespace DynamicsMigrationTool
         }
 
 
-        /// <summary>
-        /// This is used to link DTS:Executable>>DTS:Executables in the ControlFlow level of the SSIS package as opposed to the DataFlow level.
-        /// </summary>
-        /// <param name="package"></param>
-        /// <param name="fromExecutable_Name"></param>
-        /// <param name="toExecutable_Name"></param>
-        /// <param name="constraintNumber"></param>
-        private void GenerateXML_PrecedenceConstraint(XDocument package, string fromExecutable_Name, string toExecutable_Name, int constraintNumber) //@tim - how can I write back out to constraint number?
+
+
+        public void SavePackage(XDocument package, string packageName, string packageLocation)
         {
-            //@Testing - tested successfully by adding output to RunAll package
-
-            var precedenceConstraints = package.Element(DTS + "Executable").Element(DTS + "PrecedenceConstraints");
-
-            precedenceConstraints.Add(new XElement(DTS + "PrecedenceConstraint",
-                                        new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
-                                        new XAttribute(DTS + "From", "Package\\" + fromExecutable_Name),
-                                        new XAttribute(DTS + "To", "Package\\" + toExecutable_Name),
-                                        new XAttribute(DTS + "LogicalAnd", "True"),
-                                        new XAttribute(DTS + "ObjectName", "Constraint_" + constraintNumber)
-                                        ));
+            package.Save(packageLocation + "\\" + packageName + ".dtsx");
         }
 
-
-        public void SavePackage(XDocument package, string entityName, string packageLocation)
+        public XDocument createRunAll(XDocument project)
         {
-            package.Save(packageLocation + "\\" + entityName + ".dtsx");
+            var packageName = "RunAll";
+            var package = new XDocument();
+            GenerateXML_SSISPackageBase(package, packageName);
+
+            var executables = package.Element(DTS + "Executable").Element(DTS + "Executables");
+
+
+            XNamespace SSIS = "www.microsoft.com/SqlServer/SSIS";
+
+            var SSISProject = project.Element("Project").Element("DeploymentModelSpecificContent").Element("Manifest").Element(SSIS + "Project");
+            var SSISPackages = SSISProject.Element(SSIS + "Packages");
+            var existingPackages = SSISPackages.Elements(SSIS + "Package");
+            int contraintNumber = 1;
+            var previousPackageName = "";
+
+            foreach (var existingPackage in existingPackages)
+            {
+                var existingPackageName = existingPackage.Attribute(SSIS + "Name").Value.Replace(".dtsx", "");
+
+                if (existingPackageName.ToLower() != "runall")
+                {
+                    XElement executable = new XElement(DTS + "Executable",
+                        new XAttribute(DTS + "refId", $"Package\\Execute Package - {existingPackageName}"),
+                        new XAttribute(DTS + "CreationName", "Microsoft.ExecutePackageTask"),
+                        new XAttribute(DTS + "DTSID", GenerateNewXMLGuid()),
+                        new XAttribute(DTS + "ExecutableType", "Microsoft.ExecutePackageTask"),
+                        new XAttribute(DTS + "LocaleID", "-1"),
+                        new XAttribute(DTS + "ObjectName", $"Execute Package - {existingPackageName}"),
+                        new XElement(DTS + "Variables"),
+                        new XElement(DTS + "ObjectData",
+                            new XElement("ExecutePackageTask",
+                                new XElement("UseProjectReference", "True"),
+                                new XElement("PackageName", $"{existingPackageName}.dtsx")
+                            )
+                        )
+                    );
+
+                    executables.Add(executable);
+
+                    if (previousPackageName != "")
+                    {
+                        GenerateXML_Executable_AddConstraint(package, $"Execute Package - {previousPackageName}", $"Execute Package - {existingPackageName}", contraintNumber);
+                        contraintNumber++;
+                    }
+
+                    previousPackageName = existingPackageName;
+                }
+                
+            }
+
+
+            return package;
+
         }
 
+        
 
-        public void addSSISPackageToProject(string entityName, XDocument project)
+
+        public void addSSISPackageToProject(string packageName, XDocument project)
         {
-            var SSISPackageName = entityName.ToLower() + ".dtsx";
+            var SSISPackageName = packageName.ToLower() + ".dtsx";
 
             XNamespace SSIS = "www.microsoft.com/SqlServer/SSIS";
 
@@ -746,7 +786,7 @@ namespace DynamicsMigrationTool
                         new XElement(SSIS + "Property",
                             new XAttribute(SSIS + "Name", "ID"), GenerateNewXMLGuid()),
                         new XElement(SSIS + "Property",
-                            new XAttribute(SSIS + "Name", "Name"), entityName),
+                            new XAttribute(SSIS + "Name", "Name"), packageName),
                         new XElement(SSIS + "Property",
                             new XAttribute(SSIS + "Name", "VersionMajor"), "1"),
                         new XElement(SSIS + "Property",
@@ -787,9 +827,34 @@ namespace DynamicsMigrationTool
         }
 
 
-        public XDocument GetProjectFile(string projectName)
+        public XDocument GetProjectFile()
         {
-            var path = ssisProjectLocation + $"\\{projectName}.dtproj";
+            var path = "";
+
+            try
+            {
+                Directory.GetFiles(ssisProjectLocation, "*.dtproj");
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Unable to find a file called \"*.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\[projectName]\n\n For more information please see the About button.");
+            }
+
+            var files = Directory.GetFiles(ssisProjectLocation, "*.dtproj");
+
+            if (files == null)
+            {
+                MessageBox.Show($"Unable to find a file called \"*.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\[projectName]\n\n For more information please see the About button.");
+            }
+            else if(files.Count() > 1)
+            {
+                MessageBox.Show($"Found multiple files called \"*.dtproj\" at the {ssisProjectLocation}. Please move/remove additional .dtproj files.");
+            }
+            else
+            {
+                path = files.FirstOrDefault();
+            }
+
             XDocument package = null;
 
             try
@@ -798,7 +863,7 @@ namespace DynamicsMigrationTool
             }
             catch (Exception e)
             {
-                MessageBox.Show($"Unable to find a file called \"{projectName}.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\{projectName}\n\n For more information please see the About button.");
+                MessageBox.Show($"Unable to find {path}. Please ensure you have the correct location set.");
             }
 
             return package;

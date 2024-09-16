@@ -23,11 +23,13 @@ using System.Xml;
 using XrmToolBox.Extensibility;
 using System.Activities.Expressions;
 using System.Activities.Statements;
+using System.IO.Packaging;
 
 namespace DynamicsMigrationTool
 {
     public partial class MyPluginControl : PluginControlBase
     {
+        private XMLGeneration XMLGen;
         private Settings mySettings;
         private SourceToStagingGeneration sourceToStagingGeneration;
         private CRMToStagingGeneration crmToStagingGeneration;
@@ -67,6 +69,7 @@ namespace DynamicsMigrationTool
                 stagingDBConnection_txtb.Text = mySettings.StagingDBConnectionString;
                 sourceToStagingLocation_txtb.Text = mySettings.SourceToStagingLocationString;
                 crmToStagingLocation_txtb.Text = mySettings.CRMToStagingLocationString;
+                createRunAllPackage_txtb.Text = mySettings.RunAllLocationString;
 
                 //detatching and then reattaching the checkchanged so we can set the tickbox without a popup message.
                 dataTransforms_chbx.CheckedChanged -= dataTransforms_chbx_CheckedChanged;
@@ -691,6 +694,51 @@ SELECT
             Cursor = System.Windows.Forms.Cursors.Arrow;
         }
 
+
+        private void createRunAllPackage_btn_Click(object sender, EventArgs e)
+        {
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+
+            if (!mySettings.RunAllLocationString.IsNullOrEmpty())
+            {
+                var ssisProjectLocation = mySettings.RunAllLocationString;
+                XMLGen = new XMLGeneration(Service, ssisProjectLocation);
+
+                var project = XMLGen.GetProjectFile();
+
+                var package = XMLGen.createRunAll(project);
+
+                var result = MessageBox.Show($"This will create RunAll.dtsx at {ssisProjectLocation}\\\n\nWARNING - If that file exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
+                                     MessageBoxButtons.YesNo,
+                                     MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    try
+                    {
+                        XMLGen.SavePackage(package, "RunAll", ssisProjectLocation);
+                        MessageBox.Show("SSIS package created successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("SSIS package failed to save. Check CRM To Staging SSIS Project Location is correct.");
+                    }
+                    XMLGen.addSSISPackageToProject("RunAll", project);
+                }
+
+
+
+
+            }
+            else
+            {
+                MessageBox.Show("Please populate SSIS Project Location.");
+            }
+
+            Cursor = System.Windows.Forms.Cursors.Arrow;
+        }
+
         private void sourceDBSchema_txtb_TextChanged(object sender, EventArgs e)
         {
 
@@ -708,6 +756,11 @@ SELECT
         private void stagingDBImportSchema_txtb_TextChanged(object sender, EventArgs e)
         {
             mySettings.ImportSchema = stagingDBImportSchema_txtb.Text;
+            SettingsManager.Instance.Save(GetType(), mySettings);
+        }
+        private void createRunAllPackage_txtb_TextChanged(object sender, EventArgs e)
+        {
+            mySettings.RunAllLocationString = createRunAllPackage_txtb.Text;
             SettingsManager.Instance.Save(GetType(), mySettings);
         }
 

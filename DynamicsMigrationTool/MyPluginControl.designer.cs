@@ -51,6 +51,9 @@
             this.stagingDBImportSchema_txtb = new System.Windows.Forms.TextBox();
             this.stagingDBImportSchema_lbl = new System.Windows.Forms.Label();
             this.createCRMToStagingPackage_btn = new System.Windows.Forms.Button();
+            this.createRunAllPackage_btn = new System.Windows.Forms.Button();
+            this.createRunAllPackage_txtb = new System.Windows.Forms.TextBox();
+            this.createRunAllPackage_lbl = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // CreateStgTbl_Btn
@@ -263,10 +266,40 @@
             this.createCRMToStagingPackage_btn.UseVisualStyleBackColor = true;
             this.createCRMToStagingPackage_btn.Click += new System.EventHandler(this.createCRMToStagingPackage_btn_Click);
             // 
+            // createRunAllPackage_btn
+            // 
+            this.createRunAllPackage_btn.Location = new System.Drawing.Point(42, 602);
+            this.createRunAllPackage_btn.Name = "createRunAllPackage_btn";
+            this.createRunAllPackage_btn.Size = new System.Drawing.Size(247, 32);
+            this.createRunAllPackage_btn.TabIndex = 1012;
+            this.createRunAllPackage_btn.Text = "Create Run All Package";
+            this.createRunAllPackage_btn.UseVisualStyleBackColor = true;
+            this.createRunAllPackage_btn.Click += new System.EventHandler(this.createRunAllPackage_btn_Click);
+            // 
+            // createRunAllPackage_txtb
+            // 
+            this.createRunAllPackage_txtb.Location = new System.Drawing.Point(42, 661);
+            this.createRunAllPackage_txtb.Name = "createRunAllPackage_txtb";
+            this.createRunAllPackage_txtb.Size = new System.Drawing.Size(505, 22);
+            this.createRunAllPackage_txtb.TabIndex = 1013;
+            this.createRunAllPackage_txtb.TextChanged += new System.EventHandler(this.createRunAllPackage_txtb_TextChanged);
+            // 
+            // createRunAllPackage_lbl
+            // 
+            this.createRunAllPackage_lbl.AutoSize = true;
+            this.createRunAllPackage_lbl.Location = new System.Drawing.Point(39, 642);
+            this.createRunAllPackage_lbl.Name = "createRunAllPackage_lbl";
+            this.createRunAllPackage_lbl.Size = new System.Drawing.Size(136, 16);
+            this.createRunAllPackage_lbl.TabIndex = 1014;
+            this.createRunAllPackage_lbl.Text = "SSIS Project Location";
+            // 
             // MyPluginControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.createRunAllPackage_lbl);
+            this.Controls.Add(this.createRunAllPackage_txtb);
+            this.Controls.Add(this.createRunAllPackage_btn);
             this.Controls.Add(this.createCRMToStagingPackage_btn);
             this.Controls.Add(this.stagingDBImportSchema_lbl);
             this.Controls.Add(this.stagingDBImportSchema_txtb);
@@ -292,7 +325,7 @@
             this.Controls.Add(this.CreateStgTbl_Btn);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "MyPluginControl";
-            this.Size = new System.Drawing.Size(833, 602);
+            this.Size = new System.Drawing.Size(833, 696);
             this.Load += new System.EventHandler(this.MyPluginControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -323,5 +356,8 @@
         private System.Windows.Forms.TextBox stagingDBImportSchema_txtb;
         private System.Windows.Forms.Label stagingDBImportSchema_lbl;
         private System.Windows.Forms.Button createCRMToStagingPackage_btn;
+        private System.Windows.Forms.Button createRunAllPackage_btn;
+        private System.Windows.Forms.TextBox createRunAllPackage_txtb;
+        private System.Windows.Forms.Label createRunAllPackage_lbl;
     }
 }

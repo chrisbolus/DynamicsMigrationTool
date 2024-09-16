@@ -38,14 +38,13 @@ namespace DynamicsMigrationTool
 
         public void CreatePackage(string entityName)
         {
-            var projectName = "SourceToStaging";
             var ssisProjectLocation = mySettings.SourceToStagingLocationString;
 
             XMLGen = new XMLGeneration(Service, ssisProjectLocation);
 
             var package = new XDocument();
 
-            var project = XMLGen.GetProjectFile(projectName);
+            var project = XMLGen.GetProjectFile();
 
             if (project != null)
             {
