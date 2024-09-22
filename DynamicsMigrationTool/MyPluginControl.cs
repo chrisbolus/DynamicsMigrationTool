@@ -707,28 +707,30 @@ SELECT
 
                 var project = XMLGen.GetProjectFile();
 
-                var package = XMLGen.createRunAll(project);
-
-                var result = MessageBox.Show($"This will create RunAll.dtsx at {ssisProjectLocation}\\\n\nWARNING - If that file exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
-                                     MessageBoxButtons.YesNo,
-                                     MessageBoxIcon.Question);
-
-                if (result == DialogResult.Yes)
+                if (project != null)
                 {
-                    try
+
+                    var package = XMLGen.createRunAll(project);
+
+                    var result = MessageBox.Show($"This will create _RunAll.dtsx at {ssisProjectLocation}\\\n\nWARNING - If that file exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
+                                         MessageBoxButtons.YesNo,
+                                         MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
                     {
-                        XMLGen.SavePackage(package, "RunAll", ssisProjectLocation);
-                        MessageBox.Show("SSIS package created successfully.");
+                        try
+                        {
+                            XMLGen.SavePackage(package, "_RunAll", ssisProjectLocation);
+                            MessageBox.Show("SSIS package created successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("SSIS package failed to save. Check CRM To Staging SSIS Project Location is correct.");
+                        }
+                        XMLGen.addSSISPackageToProject("_RunAll", project);
                     }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("SSIS package failed to save. Check CRM To Staging SSIS Project Location is correct.");
-                    }
-                    XMLGen.addSSISPackageToProject("RunAll", project);
                 }
-
-
-
+                
 
             }
             else

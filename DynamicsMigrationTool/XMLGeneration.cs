@@ -702,7 +702,7 @@ namespace DynamicsMigrationTool
 
         public XDocument createRunAll(XDocument project)
         {
-            var packageName = "RunAll";
+            var packageName = "_RunAll";
             var package = new XDocument();
             GenerateXML_SSISPackageBase(package, packageName);
 
@@ -721,7 +721,7 @@ namespace DynamicsMigrationTool
             {
                 var existingPackageName = existingPackage.Attribute(SSIS + "Name").Value.Replace(".dtsx", "");
 
-                if (existingPackageName.ToLower() != "runall")
+                if (!existingPackageName.ToLower().Contains("runall"))
                 {
                     XElement executable = new XElement(DTS + "Executable",
                         new XAttribute(DTS + "refId", $"Package\\Execute Package - {existingPackageName}"),
@@ -833,37 +833,40 @@ namespace DynamicsMigrationTool
 
             try
             {
-                Directory.GetFiles(ssisProjectLocation, "*.dtproj");
+                var files = Directory.GetFiles(ssisProjectLocation, "*.dtproj");
+
+                if (files == null)
+                {
+                    MessageBox.Show($"Unable to find a file called \"*.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\[projectName]\n\n For more information please see the About button.");
+                }
+                else if (files.Count() > 1)
+                {
+                    MessageBox.Show($"Found multiple files called \"*.dtproj\" at the {ssisProjectLocation}. Please move/remove additional .dtproj files.");
+                }
+                else
+                {
+                    path = files.FirstOrDefault();
+                }
             }
             catch (Exception e)
             {
                 MessageBox.Show($"Unable to find a file called \"*.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\[projectName]\n\n For more information please see the About button.");
             }
 
-            var files = Directory.GetFiles(ssisProjectLocation, "*.dtproj");
 
-            if (files == null)
-            {
-                MessageBox.Show($"Unable to find a file called \"*.dtproj\" at the {ssisProjectLocation}. Please ensure you have the correct location set, e.g. C:\\Users\\Chris\\DMSolution\\[projectName]\n\n For more information please see the About button.");
-            }
-            else if(files.Count() > 1)
-            {
-                MessageBox.Show($"Found multiple files called \"*.dtproj\" at the {ssisProjectLocation}. Please move/remove additional .dtproj files.");
-            }
-            else
-            {
-                path = files.FirstOrDefault();
-            }
 
             XDocument package = null;
 
-            try
-            {
-                package = XDocument.Load(path);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"Unable to find {path}. Please ensure you have the correct location set.");
+            if (path != "")
+            { 
+                try
+                {
+                    package = XDocument.Load(path);
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show($"Unable to find {path}. Please ensure you have the correct location set.");
+                }
             }
 
             return package;
