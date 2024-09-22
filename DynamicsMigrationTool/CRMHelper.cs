@@ -122,6 +122,10 @@ namespace DynamicsMigrationTool
             else if (attribute.AttributeType == AttributeTypeCode.String)
             {
                 var strlength = (int)attribute.GetType().GetProperty("MaxLength").GetValue(attribute);
+                if (attribute.AttributeOf != null)
+                {
+                    strlength = (int)attribute.GetType().GetProperty("DatabaseLength").GetValue(attribute);
+                }
                 EntAAI.DynDataType_Readable = EntAAI.DynDataType_Readable + $"({strlength})";
                 if (strlength > 4000)
                 {
