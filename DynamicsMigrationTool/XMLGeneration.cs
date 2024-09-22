@@ -186,6 +186,33 @@ namespace DynamicsMigrationTool
             GenerateXML_Executable_SQLTask_AddTask(package, $"Truncate {{{schemaName}}}{{{entityName}}}", SQLConnection, SQLQuery);
         }
 
+        public void GenerateXML_Executable_SQLTask_BackupLoadInformation(XDocument package, string entityName, string schemaName, string SQLConnection)
+        {
+            var entityPK = CRMHelper.GetEntityPK(Service, entityName);
+
+            var SQLQuery = $"IF NOT EXISTS(SELECT * FROM SYS.TABLES AS T INNER JOIN SYS.schemas AS S ON T.schema_id = S.schema_id WHERE S.NAME = '{schemaName}' AND T.NAME = 'TMP_{entityName}')\r\n" +
+                            $"SELECT {entityPK}_Source, Source_System_Id, DynId, Processing_Status, DateCreate, DateUpdate, DateDelete\r\n" +
+                            $"INTO {schemaName}.TMP_{entityName}\r\n" +
+                            $"FROM {schemaName}.{entityName}";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, $"Backup Load Information", SQLConnection, SQLQuery);
+        }
+
+        public void GenerateXML_Executable_SQLTask_RestoreLoadInformation(XDocument package, string entityName, string schemaName, string SQLConnection)
+        {
+            var entityPK = CRMHelper.GetEntityPK(Service, entityName);
+
+            var SQLQuery = $"UPDATE e\r\n" +
+                            $"SET\te.DynId = t.DynId, e.Processing_Status = t.Processing_Status, e.DateCreate = t.DateCreate, e.DateUpdate = t.DateUpdate, e.DateDelete = t.DateDelete\r\n" +
+                            $"FROM {schemaName}.{entityName} AS e\r\n" +
+                            $"INNER JOIN {schemaName}.TMP_{entityName} AS t ON e.{entityPK}_Source = t.{entityPK}_Source AND e.Source_System_Id = t.Source_System_Id\r\n" +
+                            $"GO\r\n" +
+                            $"DROP TABLE {schemaName}.TMP_{entityName}\r\n" +
+                            $"GO";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, $"Restore Load Information", SQLConnection, SQLQuery);
+        }
+
         public void GenerateXML_Executable_SQLTask_AddTask(XDocument package, string executableName, string SQLConnection, string SQLQuery)
         {
             XNamespace sqlTask = "www.microsoft.com/sqlserver/dts/tasks/sqltask";

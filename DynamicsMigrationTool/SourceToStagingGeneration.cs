@@ -54,6 +54,7 @@ namespace DynamicsMigrationTool
                 if (SourceDBId != null && StagingDBId != null)
                 {
                     XMLGen.GenerateXML_SSISPackageBase(package, entityName);
+                    XMLGen.GenerateXML_Executable_SQLTask_BackupLoadInformation(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     XMLGen.GenerateXML_Executable_SQLTask_TruncateTable(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
 
@@ -67,11 +68,13 @@ namespace DynamicsMigrationTool
                     }
                     GenerateXML_Executable_SQLTask_S2SReAddPK(package, entityName);
                     GenerateXML_Executable_SQLTask_S2SReAddIndexes(package, entityName);
+                    XMLGen.GenerateXML_Executable_SQLTask_RestoreLoadInformation(package, entityName, mySettings.StagingDBSchema, StagingDBId);
 
                     //Constraints link Executables
                     int ConstraintNumber = 1;
 
 
+                    XMLGen.GenerateXML_Executable_AddConstraint(package, $"Backup Load Information", $"Truncate {{{mySettings.StagingDBSchema}}}{{{entityName}}}", ConstraintNumber++);
                     XMLGen.GenerateXML_Executable_AddConstraint(package, $"Truncate {{{mySettings.StagingDBSchema}}}{{{entityName}}}", "Drop Indexes and PK", ConstraintNumber++);
                     XMLGen.GenerateXML_Executable_AddConstraint(package, "Drop Indexes and PK", dataFlowTaskName, ConstraintNumber++);
                     if (mySettings.UseDataTransforms)
@@ -85,7 +88,7 @@ namespace DynamicsMigrationTool
                         XMLGen.GenerateXML_Executable_AddConstraint(package, dataFlowTaskName, "ReAdd PK", ConstraintNumber++);
                     }
                     XMLGen.GenerateXML_Executable_AddConstraint(package, "ReAdd PK", "ReAdd Indexes", ConstraintNumber++);
-
+                    XMLGen.GenerateXML_Executable_AddConstraint(package, "ReAdd Indexes", "Restore Load Information", ConstraintNumber++);
 
                     var result = MessageBox.Show($"This will create {entityName}.dtsx at {ssisProjectLocation}\\\n\nWARNING - If that file exists already, it will be OVERWRITTEN!\n\nAre you happy to proceed?", "Warning",
                                      MessageBoxButtons.YesNo,
@@ -189,6 +192,9 @@ namespace DynamicsMigrationTool
             var entAII = EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entityName, "Entity", 100);
             entAII.SSISLineage = "Derived Column";
             SourceErrorFields.Add(entAII);
+            entAII = EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entityName, "LoadStep", 100);
+            entAII.SSISLineage = "Derived Column";
+            SourceErrorFields.Add(entAII);
             entAII = EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entityName, "ErrorDate");
             entAII.SSISLineage = "Derived Column";
             SourceErrorFields.Add(entAII);
@@ -197,6 +203,7 @@ namespace DynamicsMigrationTool
             var TargetErrorFields = new List<EntityAttribute_AdditionalInfo>();
 
             TargetErrorFields.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entityName, "Entity", 100));
+            TargetErrorFields.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entityName, "LoadStep", 100));
             TargetErrorFields.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_String(entityName, "id_Source", 255));
             TargetErrorFields.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_IntegerField(entityName, "Source_System_Id"));
             TargetErrorFields.Add(EntityAttribute_AdditionalInfo.EntityAttribute_AdditionalInfo_Staging_DateTime(entityName, "ErrorDate"));
@@ -308,6 +315,33 @@ namespace DynamicsMigrationTool
                                         new XAttribute("expressionType", "Notify"),
                                         new XAttribute("name", "FriendlyExpression"),
                                         $"\"{entityName}\""
+                                    )
+                                )
+                            ),
+                            new XElement("outputColumn",
+                                new XAttribute("refId", path + ".Outputs[Derived Column Output].Columns[LoadStep]"),
+                                new XAttribute("dataType", "wstr"),
+                                new XAttribute("errorOrTruncationOperation", "Computation"),
+                                new XAttribute("errorRowDisposition", "FailComponent"),
+                                new XAttribute("length", "100"),
+                                new XAttribute("lineageId", path + ".Outputs[Derived Column Output].Columns[LoadStep]"),
+                                new XAttribute("name", "LoadStep"),
+                                new XAttribute("truncationRowDisposition", "FailComponent"),
+                                new XElement("properties",
+                                    new XElement("property",
+                                        new XAttribute("containsID", "true"),
+                                        new XAttribute("dataType", "System.String"),
+                                        new XAttribute("description", "Derived Column Expression"),
+                                        new XAttribute("name", "Expression"),
+                                        $"\"Source To Staging\""
+                                    ),
+                                    new XElement("property",
+                                        new XAttribute("containsID", "true"),
+                                        new XAttribute("dataType", "System.String"),
+                                        new XAttribute("description", "Derived Column Friendly Expression"),
+                                        new XAttribute("expressionType", "Notify"),
+                                        new XAttribute("name", "FriendlyExpression"),
+                                        $"\"Source To Staging\""
                                     )
                                 )
                             ),
