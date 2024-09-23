@@ -186,6 +186,16 @@ namespace DynamicsMigrationTool
             GenerateXML_Executable_SQLTask_AddTask(package, $"Truncate {{{schemaName}}}{{{entityName}}}", SQLConnection, SQLQuery);
         }
 
+        public void GenerateXML_Executable_SQLTask_DeleteErrorLogs(XDocument package, string entityName, string schemaName, string SQLConnection)
+        {
+            var SQLQuery = $"DELETE \r\n" +
+                            $"FROM Logging.ErrorLog \r\n" +
+                            $"WHERE LoadStep = 'Source To Staging' \r\n" +
+                            $"AND Entity = '{entityName}'";
+
+            GenerateXML_Executable_SQLTask_AddTask(package, $"Delete Source To Staging Error Logs for {entityName}", SQLConnection, SQLQuery);
+        }
+
         public void GenerateXML_Executable_SQLTask_BackupLoadInformation(XDocument package, string entityName, string schemaName, string SQLConnection)
         {
             var entityPK = CRMHelper.GetEntityPK(Service, entityName);
@@ -202,8 +212,14 @@ namespace DynamicsMigrationTool
         {
             var entityPK = CRMHelper.GetEntityPK(Service, entityName);
 
+
+            //have had to remove processing status as without delta flagging, records that have changed will still be flagged loaded
             var SQLQuery = $"UPDATE e\r\n" +
-                            $"SET\te.DynId = t.DynId, e.Processing_Status = t.Processing_Status, e.DateCreate = t.DateCreate, e.DateUpdate = t.DateUpdate, e.DateDelete = t.DateDelete\r\n" +
+                            $"SET\te.DynId = t.DynId, " +
+                            //$"e.Processing_Status = t.Processing_Status, " +
+                            $"e.DateCreate = t.DateCreate, " +
+                            $"e.DateUpdate = t.DateUpdate, " +
+                            $"e.DateDelete = t.DateDelete\r\n" +
                             $"FROM {schemaName}.{entityName} AS e\r\n" +
                             $"INNER JOIN {schemaName}.TMP_{entityName} AS t ON e.{entityPK}_Source = t.{entityPK}_Source AND e.Source_System_Id = t.Source_System_Id\r\n" +
                             $"GO\r\n" +

@@ -54,6 +54,7 @@ namespace DynamicsMigrationTool
                 if (SourceDBId != null && StagingDBId != null)
                 {
                     XMLGen.GenerateXML_SSISPackageBase(package, entityName);
+                    XMLGen.GenerateXML_Executable_SQLTask_DeleteErrorLogs(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     XMLGen.GenerateXML_Executable_SQLTask_BackupLoadInformation(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     XMLGen.GenerateXML_Executable_SQLTask_TruncateTable(package, entityName, mySettings.StagingDBSchema, StagingDBId);
                     GenerateXML_Executable_SQLTask_S2SDropIndexesAndPK(package, entityName);
@@ -74,6 +75,7 @@ namespace DynamicsMigrationTool
                     int ConstraintNumber = 1;
 
 
+                    XMLGen.GenerateXML_Executable_AddConstraint(package, $"Delete Source To Staging Error Logs for {entityName}", $"Backup Load Information", ConstraintNumber++);
                     XMLGen.GenerateXML_Executable_AddConstraint(package, $"Backup Load Information", $"Truncate {{{mySettings.StagingDBSchema}}}{{{entityName}}}", ConstraintNumber++);
                     XMLGen.GenerateXML_Executable_AddConstraint(package, $"Truncate {{{mySettings.StagingDBSchema}}}{{{entityName}}}", "Drop Indexes and PK", ConstraintNumber++);
                     XMLGen.GenerateXML_Executable_AddConstraint(package, "Drop Indexes and PK", dataFlowTaskName, ConstraintNumber++);
